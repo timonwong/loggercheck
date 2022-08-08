@@ -1,4 +1,4 @@
-package plugin
+package main
 
 import (
 	"github.com/timonwong/logrlint/pkg/analyzer"
