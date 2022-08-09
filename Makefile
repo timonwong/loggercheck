@@ -11,7 +11,7 @@ test: test-deps
 
 .PHONY: build
 build:
-	go build -o bin/logrlint .
+	go build -o bin/logrlint ./cmd/logrlint
 
 .PHONY: build-plugin
 build-plugin:

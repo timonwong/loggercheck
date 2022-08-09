@@ -3,6 +3,7 @@ package logrlint
 import (
 	"go/ast"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -19,10 +20,24 @@ var Analyzer = &analysis.Analyzer{
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
 
-var isValid = map[string]struct{}{
-	"(github.com/go-logr/logr.Logger).Error":      {},
-	"(github.com/go-logr/logr.Logger).Info":       {},
-	"(github.com/go-logr/logr.Logger).WithValues": {},
+var isValidName = map[string]struct{}{
+	"Error":      {},
+	"Info":       {},
+	"WithValues": {},
+}
+
+func isLogrPackage(fn *types.Func) bool {
+	const logrPackage = "github.com/go-logr/logr"
+	packageName := fn.Pkg().Path()
+	if packageName == logrPackage {
+		return true
+	}
+
+	if strings.HasSuffix(packageName, "/vendor/"+logrPackage) {
+		return true
+	}
+
+	return false
 }
 
 func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
@@ -31,7 +46,11 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		return
 	}
 
-	if _, ok := isValid[fn.FullName()]; !ok {
+	if _, ok := isValidName[fn.Name()]; !ok {
+		return
+	}
+
+	if !isLogrPackage(fn) {
 		return
 	}
 
@@ -54,9 +73,10 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		firstArg := call.Args[startIndex]
 		lastArg := call.Args[len(call.Args)-1]
 		pass.Report(analysis.Diagnostic{
-			Pos:     firstArg.Pos(),
-			End:     lastArg.End(),
-			Message: "odd number of arguments passed as key-value pairs for logging"})
+			Pos:      firstArg.Pos(),
+			End:      lastArg.End(),
+			Category: "logging",
+			Message:  "odd number of arguments passed as key-value pairs for logging"})
 	}
 }
 
