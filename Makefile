@@ -13,5 +13,6 @@ test: test-deps
 build:
 	go build -o bin/logrlint .
 
+.PHONY: build-plugin
 build-plugin:
 	CGO_ENABLED=1 go build -o bin/logrlint.so -buildmode=plugin ./plugin
