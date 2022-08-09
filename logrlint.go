@@ -28,7 +28,11 @@ var isValidName = map[string]struct{}{
 
 func isLogrPackage(fn *types.Func) bool {
 	const logrPackage = "github.com/go-logr/logr"
-	packageName := fn.Pkg().Path()
+	pkg := fn.Pkg()
+	if pkg == nil {
+		return false
+	}
+	packageName := pkg.Path()
 	if packageName == logrPackage {
 		return true
 	}
