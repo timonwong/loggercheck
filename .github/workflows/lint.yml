@@ -1,4 +1,4 @@
-name: Ling
+name: Lint
 
 on:
   push:
