@@ -1,9 +1,9 @@
 package logrlint
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
-	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -26,41 +26,42 @@ var isValidName = map[string]struct{}{
 	"WithValues": {},
 }
 
-func isLogrPackage(fn *types.Func) bool {
-	const logrPackage = "github.com/go-logr/logr"
+func isValidPackage(pass *analysis.Pass, fn *types.Func) bool {
+	// We allow only logr package import path
+	const packageName = "github.com/go-logr/logr"
+
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return false
 	}
-	packageName := pkg.Path()
-	if packageName == logrPackage {
+	pkgPath := pkg.Path()
+	// Fast path: for GOPATH or go mod enabled packages
+	if pkgPath == packageName {
 		return true
 	}
 
-	if strings.HasSuffix(packageName, "/vendor/"+logrPackage) {
-		return true
-	}
-
-	return false
+	// Special case for vendor
+	vendorPath := fmt.Sprintf("%s/vendor/%s", pass.Pkg.Name(), packageName)
+	return pkgPath == vendorPath
 }
 
 func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
 	if fn == nil {
-		return
+		return // function pointer is not supported
+	}
+
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || !sig.Variadic() {
+		return // not variadic
 	}
 
 	if _, ok := isValidName[fn.Name()]; !ok {
 		return
 	}
 
-	if !isLogrPackage(fn) {
+	if !isValidPackage(pass, fn) {
 		return
-	}
-
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || !sig.Variadic() {
-		return // not variadic
 	}
 
 	params := sig.Params()
