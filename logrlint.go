@@ -11,41 +11,48 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
-const Doc = "Check logr arguments."
+var Analyzer = newAnalyzer()
 
-var Analyzer = &analysis.Analyzer{
-	Name:     "logrlint",
-	Doc:      Doc,
-	Run:      run,
-	Requires: []*analysis.Analyzer{inspect.Analyzer},
+func newAnalyzer() *analysis.Analyzer {
+	a := &analysis.Analyzer{
+		Name:     "logrlint",
+		Doc:      "Check logr and klog arguments.",
+		Run:      run,
+		Requires: []*analysis.Analyzer{inspect.Analyzer},
+	}
+	return a
 }
 
-var isValidName = map[string]struct{}{
-	"Error":      {},
-	"Info":       {},
-	"WithValues": {},
+var validLoggerToFuncNames = map[string]stringSet{
+	"github.com/go-logr/logr": newStringSet([]string{"Error", "Info", "WithValues"}),
+	"k8s.io/klog/v2":          newStringSet([]string{"InfoS", "InfoSDepth", "ErrorS"}),
 }
 
-func isValidPackage(pass *analysis.Pass, fn *types.Func) bool {
-	// We allow only logr package import path
-	const packageName = "github.com/go-logr/logr"
+func getLoggerFuncNames(pkgPath, callerPkgPath string) stringSet {
+	for loggerPkg, names := range validLoggerToFuncNames {
+		if loggerPkg == pkgPath {
+			return names
+		}
 
+		vendorPath := fmt.Sprintf("%s/vendor/%s", callerPkgPath, loggerPkg)
+		if vendorPath == pkgPath {
+			return names
+		}
+	}
+	return nil
+}
+
+func isValidLoggerFuncName(pass *analysis.Pass, fn *types.Func) bool {
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return false
 	}
-	pkgPath := pkg.Path()
-	// Fast path: for GOPATH or go mod enabled packages
-	if pkgPath == packageName {
-		return true
-	}
 
-	// Special case for vendor
-	vendorPath := fmt.Sprintf("%s/vendor/%s", pass.Pkg.Name(), packageName)
-	return pkgPath == vendorPath
+	names := getLoggerFuncNames(pkg.Path(), pass.Pkg.Name())
+	return names.has(fn.Name())
 }
 
-func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
+func checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
 	if fn == nil {
 		return // function pointer is not supported
@@ -56,11 +63,7 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		return // not variadic
 	}
 
-	if _, ok := isValidName[fn.Name()]; !ok {
-		return
-	}
-
-	if !isValidPackage(pass, fn) {
+	if !isValidLoggerFuncName(pass, fn) {
 		return
 	}
 
@@ -78,10 +81,11 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	}
 
 	startIndex := nparams - 1
-	variadicLen := len(call.Args) - (startIndex)
+	nargs := len(call.Args)
+	variadicLen := nargs - startIndex
 	if variadicLen%2 != 0 {
 		firstArg := call.Args[startIndex]
-		lastArg := call.Args[len(call.Args)-1]
+		lastArg := call.Args[nargs-1]
 		pass.Report(analysis.Diagnostic{
 			Pos:      firstArg.Pos(),
 			End:      lastArg.End(),
@@ -104,7 +108,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 
-		checkEvenArguments(pass, call)
+		checkLoggerArguments(pass, call)
 	})
 
 	return nil, nil
