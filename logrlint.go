@@ -64,6 +64,11 @@ func checkEvenArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		return
 	}
 
+	// ellipsis args is hard, just skip
+	if call.Ellipsis.IsValid() {
+		return
+	}
+
 	params := sig.Params()
 	nparams := params.Len() // variadic => nonzero
 	args := params.At(nparams - 1)
