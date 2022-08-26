@@ -171,9 +171,6 @@ func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
 			l.disable = loggerCheckersFlag{
 				newStringSet(l.config.cfg.Disable...),
 			}
-			for _, ck := range l.config.cfg.CustomCheckers {
-				addLogger(ck.Name, ck.PackageImport, ck.Funcs)
-			}
 		})
 	}
 

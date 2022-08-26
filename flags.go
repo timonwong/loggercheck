@@ -71,6 +71,12 @@ func (f *configFlag) Set(s string) error {
 		f.cfg = nil
 		return fmt.Errorf("load cfg file %s failed, err=%w", s, err)
 	}
+
+	// add custom loggers
+	for _, ck := range f.cfg.CustomCheckers {
+		addLogger(ck.Name, ck.PackageImport, ck.Funcs)
+	}
+
 	return nil
 }
 
