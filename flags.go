@@ -46,6 +46,7 @@ func validateIgnoredLoggerFlag(set stringSet) error {
 }
 
 type configFlag struct {
+	l   *loggercheck
 	cfg *Config
 }
 
@@ -75,6 +76,13 @@ func (f *configFlag) Set(s string) error {
 	// add custom loggers
 	for _, ck := range f.cfg.CustomCheckers {
 		addLogger(ck.Name, ck.PackageImport, ck.Funcs)
+	}
+
+	// only set disable flag value if it is not set
+	if len(f.l.disable.List()) == 0 {
+		f.l.disable = loggerCheckersFlag{
+			newStringSet(f.cfg.Disable...),
+		}
 	}
 
 	return nil

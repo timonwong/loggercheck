@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"go/types"
 	"strings"
-	"sync"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -17,11 +16,9 @@ import (
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
-	l := &loggercheck{
-		disable: loggerCheckersFlag{
-			newStringSet(),
-		},
-	}
+	l := &loggercheck{}
+
+	l.config.l = l
 
 	for _, o := range opts {
 		o(l)
@@ -169,17 +166,7 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 	}
 }
 
-var cfgInitOnce sync.Once
-
 func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
-	if l.config.cfg != nil {
-		cfgInitOnce.Do(func() {
-			l.disable = loggerCheckersFlag{
-				newStringSet(l.config.cfg.Disable...),
-			}
-		})
-	}
-
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),

@@ -53,11 +53,14 @@ func TestConfigFlagLoadFail(t *testing.T) {
 }
 
 func TestConfigFlagLoadConfig(t *testing.T) {
-	f := configFlag{}
+	l := &loggercheck{}
+	l.config = configFlag{l: l}
 
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	fs.Var(&f, "config", "")
+	fs.Var(&l.config, "config", "")
+
+	fs.Var(&l.disable, "disable", "")
 
 	testConfig := []byte(`# loggercheck sample config
 disable:
@@ -82,5 +85,15 @@ custom-checkers: []
 
 	err = fs.Parse([]string{"-config=" + testConfigFile})
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"klog", "logr"}, f.cfg.Disable)
+	assert.Equal(t, []string{"klog", "logr"}, l.disable.List())
+
+	// config file should not override `-disable` flag value
+	err = fs.Parse([]string{"-config=" + testConfigFile, "-disable=klog"})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"klog"}, l.disable.List())
+
+	// config file should not override `-disable` flag value
+	err = fs.Parse([]string{"-disable=logr", "-config=" + testConfigFile})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"logr"}, l.disable.List())
 }
