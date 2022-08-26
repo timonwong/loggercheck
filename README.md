@@ -1,6 +1,8 @@
 # logrlint
 
-A linter checks the odd number of key and value pairs for [logr](https://github.com/go-logr/logr)
+A linter checks the odd number of key and value pairs for common logger libraries:
+- [logr](https://github.com/go-logr/logr)
+- [klog](https://github.com/kubernetes/klog)
 
 ## Install
 
@@ -11,8 +13,7 @@ go install github.com/timonwong/logrlint/cmd/logrlint
 ## Usage
 
 ```shell
-bin/logrlint -h
-logrlint: Check logr arguments.
+logrlint: Checks logr and klog arguments.
 
 Usage: logrlint [-flag] [package]
 
@@ -27,6 +28,12 @@ Flags:
         write CPU profile to this file
   -debug string
         debug flags, any subset of "fpstv"
+  -disable value
+        comma-separated list of disabled logger checker (klog,logr)
+  -disableall
+        disable all logger checkers
+  -enable value
+        comma-separated list of enabled logger checker (klog,logr)
   -fix
         apply all suggested fixes
   -flags
