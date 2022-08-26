@@ -8,9 +8,9 @@ func WithDisable(disable []string) Option {
 	}
 }
 
-func WithCustomLogger(name, packageImport string, funcs []string) Option {
+func WithConfig(cfg *Config) Option {
 	return func(l *loggercheck) {
-		addLogger(name, packageImport, funcs)
+		l.config.cfg = cfg
 	}
 }
 

@@ -1,6 +1,7 @@
 package loggercheck_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,6 +12,41 @@ import (
 
 func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
+
+	testConfig := []byte(`# loggercheck sample config
+disable:
+    - klog
+    - logr
+    - zap
+custom-checkers:
+    - name: mylogger
+      package-import: a/customonly
+      funcs:
+        - (*a/customonly.Logger).Debugw
+        - (*a/customonly.Logger).Infow
+        - (*a/customonly.Logger).Warnw
+        - (*a/customonly.Logger).Errorw
+        - (*a/customonly.Logger).With
+        - a/customonly.Debugw
+        - a/customonly.Infow
+        - a/customonly.Warnw
+        - a/customonly.Errorw
+        - a/customonly.With
+`)
+
+	f, err := os.CreateTemp("/tmp", "loggercheck-test-cfg-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(testConfig); err != nil {
+		t.Errorf("write test config file failed: %v", err)
+	}
+
+	testConfigFile := f.Name()
+	t.Cleanup(func() {
+		f.Close()
+		os.Remove(testConfigFile)
+	})
 
 	testCases := []struct {
 		name     string
@@ -31,17 +67,7 @@ func TestLinter(t *testing.T) {
 			patterns: "a/customonly",
 			flags: []string{
 				"-disable=klog,logr,zap",
-				"-logger=mylogger:a/customonly:" +
-					"(*a/customonly.Logger).Debugw," +
-					"(*a/customonly.Logger).Infow," +
-					"(*a/customonly.Logger).Warnw," +
-					"(*a/customonly.Logger).Errorw," +
-					"(*a/customonly.Logger).With," +
-					"a/customonly.Debugw," +
-					"a/customonly.Infow," +
-					"a/customonly.Warnw," +
-					"a/customonly.Errorw," +
-					"a/customonly.With",
+				"-config=" + testConfigFile,
 			},
 		},
 	}
@@ -60,20 +86,27 @@ func TestLinter(t *testing.T) {
 func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
-	customLogger := loggercheck.WithCustomLogger("mylogger", "a/customonly",
-		[]string{
-			"(*a/customonly.Logger).Debugw",
-			"(*a/customonly.Logger).Infow",
-			"(*a/customonly.Logger).Warnw",
-			"(*a/customonly.Logger).Errorw",
-			"(*a/customonly.Logger).With",
+	customLogger := loggercheck.WithConfig(&loggercheck.Config{
+		CustomCheckers: []loggercheck.Checker{
+			{
+				Name:          "mylogger",
+				PackageImport: "a/customonly",
+				Funcs: []string{
+					"(*a/customonly.Logger).Debugw",
+					"(*a/customonly.Logger).Infow",
+					"(*a/customonly.Logger).Warnw",
+					"(*a/customonly.Logger).Errorw",
+					"(*a/customonly.Logger).With",
 
-			"a/customonly.Debugw",
-			"a/customonly.Infow",
-			"a/customonly.Warnw",
-			"a/customonly.Errorw",
-			"a/customonly.With",
-		})
+					"a/customonly.Debugw",
+					"a/customonly.Infow",
+					"a/customonly.Warnw",
+					"a/customonly.Errorw",
+					"a/customonly.With",
+				},
+			},
+		},
+	})
 
 	testCases := []struct {
 		name    string
