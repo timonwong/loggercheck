@@ -1,4 +1,4 @@
-package logrlint_test
+package loggercheck_test
 
 import (
 	"testing"
@@ -6,17 +6,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/analysis/analysistest"
 
-	"github.com/timonwong/logrlint"
+	"github.com/timonwong/loggercheck"
 )
 
 func TestAll(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, logrlint.NewAnalyzer(), "a/all")
+	analysistest.Run(t, testdata, loggercheck.NewAnalyzer(), "a/all")
 }
 
 func TestKlogOnly(t *testing.T) {
 	testdata := analysistest.TestData()
-	a := logrlint.NewAnalyzer()
+	a := loggercheck.NewAnalyzer()
 
 	testCases := []struct {
 		name  string

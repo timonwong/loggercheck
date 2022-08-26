@@ -1,13 +1,13 @@
 ---
-project_name: logrlint
+project_name: loggercheck
 
 release:
   github:
     owner: timonwong
-    name: logrlint
+    name: loggercheck
 
 builds:
-  - binary: logrlint
+  - binary: loggercheck
     goos:
       - darwin
       - windows
@@ -24,7 +24,7 @@ builds:
     ignore:
       - goos: darwin
         goarch: '386'
-    main: ./cmd/logrlint/
+    main: ./cmd/loggercheck/
     flags:
       - -trimpath
     ldflags: -s -w
