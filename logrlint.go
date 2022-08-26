@@ -2,6 +2,7 @@ package logrlint
 
 import (
 	"flag"
+	"fmt"
 	"go/ast"
 	"go/types"
 	"strings"
@@ -22,10 +23,12 @@ func NewAnalyzer() *analysis.Analyzer {
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
+
+	checkerNames := strings.Join(loggerCheckersByName.Names(), ",")
 	a.Flags.Init("logrlint", flag.ExitOnError)
 	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
-	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker")
-	a.Flags.Var(&l.enable, "enable", "comma-separated list of enabled logger checker")
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerNames))
+	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerNames))
 	return a
 }
 
@@ -33,22 +36,6 @@ type logrlint struct {
 	disableAll bool               // flag -disableall
 	disable    loggerCheckersFlag // flag -disable
 	enable     loggerCheckersFlag // flag -enable
-}
-
-type loggerCheck struct {
-	packageImport string
-	funcNames     stringSet
-}
-
-var loggerCheckersByName = map[string]loggerCheck{
-	"logr": {
-		packageImport: "github.com/go-logr/logr",
-		funcNames:     newStringSet("Error", "Info", "WithValues"),
-	},
-	"klog": {
-		packageImport: "k8s.io/klog/v2",
-		funcNames:     newStringSet("InfoS", "InfoSDepth", "ErrorS"),
-	},
 }
 
 func (l *logrlint) isCheckerDisabled(name string) bool {
