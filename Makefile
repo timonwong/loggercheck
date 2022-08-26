@@ -7,7 +7,7 @@ test-deps:
 
 .PHONY: test
 test: test-deps
-	go test ./...
+	go test -v ./...
 
 .PHONY: build
 build:

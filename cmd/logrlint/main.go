@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	singlechecker.Main(logrlint.Analyzer)
+	singlechecker.Main(logrlint.NewAnalyzer())
 }

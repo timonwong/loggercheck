@@ -1,9 +1,11 @@
 package logrlint
 
 import (
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -11,48 +13,68 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
-var Analyzer = newAnalyzer()
+const Doc = `Checks logr and klog arguments.`
 
-func newAnalyzer() *analysis.Analyzer {
+func NewAnalyzer() *analysis.Analyzer {
+	l := &logrlint{}
 	a := &analysis.Analyzer{
 		Name:     "logrlint",
-		Doc:      "Check logr and klog arguments.",
-		Run:      run,
+		Doc:      Doc,
+		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
+
+	checkerNames := strings.Join(loggerCheckersByName.Names(), ",")
+	a.Flags.Init("logrlint", flag.ExitOnError)
+	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerNames))
+	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerNames))
 	return a
 }
 
-var validLoggerToFuncNames = map[string]stringSet{
-	"github.com/go-logr/logr": newStringSet([]string{"Error", "Info", "WithValues"}),
-	"k8s.io/klog/v2":          newStringSet([]string{"InfoS", "InfoSDepth", "ErrorS"}),
+type logrlint struct {
+	disableAll bool               // flag -disableall
+	disable    loggerCheckersFlag // flag -disable
+	enable     loggerCheckersFlag // flag -enable
 }
 
-func getLoggerFuncNames(pkgPath, callerPkgPath string) stringSet {
-	for loggerPkg, names := range validLoggerToFuncNames {
-		if loggerPkg == pkgPath {
-			return names
+func (l *logrlint) isCheckerDisabled(name string) bool {
+	if l.disableAll {
+		return !l.enable.Has(name)
+	}
+	return l.disable.Has(name)
+}
+
+func (l *logrlint) getLoggerFuncNames(pkgPath string) stringSet {
+	for name, entry := range loggerCheckersByName {
+		if l.isCheckerDisabled(name) {
+			// Skip ignored logger checker.
+			continue
 		}
 
-		vendorPath := fmt.Sprintf("%s/vendor/%s", callerPkgPath, loggerPkg)
-		if vendorPath == pkgPath {
-			return names
+		if entry.packageImport == pkgPath {
+			return entry.funcNames
+		}
+
+		if strings.HasSuffix(pkgPath, "/vendor/"+entry.packageImport) {
+			return entry.funcNames
 		}
 	}
+
 	return nil
 }
 
-func isValidLoggerFuncName(pass *analysis.Pass, fn *types.Func) bool {
+func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return false
 	}
 
-	names := getLoggerFuncNames(pkg.Path(), pass.Pkg.Name())
-	return names.has(fn.Name())
+	names := l.getLoggerFuncNames(pkg.Path())
+	return names.Has(fn.Name())
 }
 
-func checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
+func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
 	if fn == nil {
 		return // function pointer is not supported
@@ -63,7 +85,7 @@ func checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 		return // not variadic
 	}
 
-	if !isValidLoggerFuncName(pass, fn) {
+	if !l.isValidLoggerFunc(fn) {
 		return
 	}
 
@@ -90,11 +112,12 @@ func checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 			Pos:      firstArg.Pos(),
 			End:      lastArg.End(),
 			Category: "logging",
-			Message:  "odd number of arguments passed as key-value pairs for logging"})
+			Message:  "odd number of arguments passed as key-value pairs for logging",
+		})
 	}
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func (l *logrlint) run(pass *analysis.Pass) (interface{}, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),
@@ -108,7 +131,7 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return
 		}
 
-		checkLoggerArguments(pass, call)
+		l.checkLoggerArguments(pass, call)
 	})
 
 	return nil, nil

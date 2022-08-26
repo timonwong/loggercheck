@@ -1,4 +1,4 @@
-package a
+package all
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func ExampleKlog() {
 	klog.V(3).ErrorS(err, "message", "key1", "value1")
 	klog.V(3).ErrorS(err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
 
-	// klog v2 can expose logr logger
+	// klog/v2 can expose logr logger
 	logger := klog.NewKlogr()
 	logger.Info("message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
 }

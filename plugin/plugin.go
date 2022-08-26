@@ -8,12 +8,12 @@ import (
 
 // AnalyzerPlugin provides analyzers as a plugin.
 // It follows golangci-lint style plugin.
-var AnalyzerPlugin analyzerPlugin // nolint: deadcode
+var AnalyzerPlugin analyzerPlugin
 
 type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
-		logrlint.Analyzer,
+		logrlint.NewAnalyzer(),
 	}
 }
