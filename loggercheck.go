@@ -44,8 +44,8 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 func defaultFlags(fs *flag.FlagSet, l *loggercheck) {
 	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
 	fs.Init("loggercheck", flag.ExitOnError)
-	fs.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
 	fs.Var(&l.config, "config", "config file path, use `sample` as filename to get sample config")
+	fs.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
 }
 
 type loggercheck struct {
