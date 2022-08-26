@@ -27,6 +27,15 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		o(l)
 	}
 
+	if l.config.cfg != nil {
+		l.disable = loggerCheckersFlag{
+			newStringSet(l.config.cfg.Disable...),
+		}
+		for _, ck := range l.config.cfg.CustomCheckers {
+			addLogger(ck.Name, ck.PackageImport, ck.Funcs)
+		}
+	}
+
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,

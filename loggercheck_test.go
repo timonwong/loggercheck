@@ -87,6 +87,7 @@ func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
 	customLogger := loggercheck.WithConfig(&loggercheck.Config{
+		Disable: []string{"klog", "logr", "zap"},
 		CustomCheckers: []loggercheck.Checker{
 			{
 				Name:          "mylogger",
@@ -116,14 +117,12 @@ func TestOptions(t *testing.T) {
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
 				customLogger,
-				loggercheck.WithDisable([]string{"klog", "logr", "zap"}),
 			},
 		},
 		{
 			name: "ignore-logr",
 			options: []loggercheck.Option{
 				customLogger,
-				loggercheck.WithDisable([]string{"logr"}),
 			},
 		},
 	}
