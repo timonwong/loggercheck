@@ -45,7 +45,7 @@ func (l *logrlint) isCheckerDisabled(name string) bool {
 	return l.disable.Has(name)
 }
 
-func (l *logrlint) getLoggerFuncNames(pkgPath string) stringSet {
+func (l *logrlint) getLoggerFuncs(pkgPath string) stringSet {
 	for name, entry := range loggerCheckersByName {
 		if l.isCheckerDisabled(name) {
 			// Skip ignored logger checker.
@@ -53,15 +53,43 @@ func (l *logrlint) getLoggerFuncNames(pkgPath string) stringSet {
 		}
 
 		if entry.packageImport == pkgPath {
-			return entry.funcNames
+			return entry.funcs
 		}
 
 		if strings.HasSuffix(pkgPath, "/vendor/"+entry.packageImport) {
-			return entry.funcNames
+			return decorateVendoredFuncs(entry.funcs, pkgPath, entry.packageImport)
 		}
 	}
 
 	return nil
+}
+
+func decorateVendoredFuncs(entryFuncs stringSet, currentPkgImport, packageImport string) stringSet {
+	funcs := make(stringSet, len(entryFuncs))
+	for fn := range entryFuncs {
+		lastDot := strings.LastIndex(fn, ".")
+		if lastDot == -1 {
+			continue // invalid pattern
+		}
+
+		importOrReceiver := fn[:lastDot]
+		fnName := fn[lastDot+1:]
+
+		if strings.HasPrefix(importOrReceiver, "(") { // is receiver
+			if !strings.HasSuffix(importOrReceiver, ")") {
+				continue // invalid pattern
+			}
+
+			leftOver := strings.TrimPrefix(importOrReceiver, "("+packageImport+".")
+			importOrReceiver = fmt.Sprintf("(%s.%s", currentPkgImport, leftOver)
+		} else { // is import
+			importOrReceiver = currentPkgImport
+		}
+
+		fn = fmt.Sprintf("%s.%s", importOrReceiver, fnName)
+		funcs.Insert(fn)
+	}
+	return funcs
 }
 
 func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
@@ -70,8 +98,8 @@ func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
 		return false
 	}
 
-	names := l.getLoggerFuncNames(pkg.Path())
-	return names.Has(fn.Name())
+	funcs := l.getLoggerFuncs(pkg.Path())
+	return funcs.Has(fn.FullName())
 }
 
 func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {

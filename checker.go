@@ -4,17 +4,27 @@ import "sort"
 
 type loggerChecker struct {
 	packageImport string
-	funcNames     stringSet
+	funcs         stringSet
 }
 
 var loggerCheckersByName = loggerCheckerMap{
 	"logr": {
 		packageImport: "github.com/go-logr/logr",
-		funcNames:     newStringSet("Error", "Info", "WithValues"),
+		funcs: newStringSet(
+			"(github.com/go-logr/logr.Logger).Error",
+			"(github.com/go-logr/logr.Logger).Info",
+			"(github.com/go-logr/logr.Logger).WithValues"),
 	},
 	"klog": {
 		packageImport: "k8s.io/klog/v2",
-		funcNames:     newStringSet("InfoS", "InfoSDepth", "ErrorS"),
+		funcs: newStringSet(
+			"k8s.io/klog/v2.InfoS",
+			"k8s.io/klog/v2.InfoSDepth",
+			"k8s.io/klog/v2.ErrorS",
+			"(k8s.io/klog/v2.Verbose).InfoS",
+			"(k8s.io/klog/v2.Verbose).InfoSDepth",
+			"(k8s.io/klog/v2.Verbose).ErrorS",
+		),
 	},
 }
 
