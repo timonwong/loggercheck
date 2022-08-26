@@ -1,4 +1,4 @@
-package logrlint
+package loggercheck
 
 import "sort"
 

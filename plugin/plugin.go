@@ -3,7 +3,7 @@ package main
 import (
 	"golang.org/x/tools/go/analysis"
 
-	"github.com/timonwong/logrlint"
+	"github.com/timonwong/loggercheck"
 )
 
 // AnalyzerPlugin provides analyzers as a plugin.
@@ -14,6 +14,6 @@ type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
-		logrlint.NewAnalyzer(),
+		loggercheck.NewAnalyzer(),
 	}
 }

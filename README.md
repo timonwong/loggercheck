@@ -1,21 +1,22 @@
-# logrlint
+# loggercheck
 
 A linter checks the odd number of key and value pairs for common logger libraries:
 - [logr](https://github.com/go-logr/logr)
 - [klog](https://github.com/kubernetes/klog)
+- [zap](https://github.com/uber-go/zap)
 
 ## Install
 
 ```shel
-go install github.com/timonwong/logrlint/cmd/logrlint
+go install github.com/timonwong/loggercheck/cmd/loggercheck
 ```
 
 ## Usage
 
 ```shell
-logrlint: Checks key valur pairs for common logger libraries (logr,klog,zap).
+loggercheck: Checks key valur pairs for common logger libraries (logr,klog,zap).
 
-Usage: logrlint [-flag] [package]
+Usage: loggercheck [-flag] [package]
 
 
 Flags:

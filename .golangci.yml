@@ -22,7 +22,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   goimports:
-    local-prefixes: github.com/timonwong/logrlint
+    local-prefixes: github.com/timonwong/loggercheck
   gomnd:
     # don't include the "operation" and "assign"
     checks:

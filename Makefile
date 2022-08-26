@@ -12,11 +12,11 @@ test: test-deps
 
 .PHONY: build
 build:
-	go build -o bin/logrlint ./cmd/logrlint
+	go build -o bin/loggercheck ./cmd/loggercheck
 
 .PHONY: build-plugin
 build-plugin:
-	CGO_ENABLED=1 go build -o bin/logrlint.so -buildmode=plugin ./plugin
+	CGO_ENABLED=1 go build -o bin/loggercheck.so -buildmode=plugin ./plugin
 
 .PHONY: build-all
 build-all: build build-plugin

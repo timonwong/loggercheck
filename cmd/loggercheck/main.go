@@ -3,9 +3,9 @@ package main
 import (
 	"golang.org/x/tools/go/analysis/singlechecker"
 
-	"github.com/timonwong/logrlint"
+	"github.com/timonwong/loggercheck"
 )
 
 func main() {
-	singlechecker.Main(logrlint.NewAnalyzer())
+	singlechecker.Main(loggercheck.NewAnalyzer())
 }

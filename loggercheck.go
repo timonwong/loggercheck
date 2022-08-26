@@ -1,4 +1,4 @@
-package logrlint
+package loggercheck
 
 import (
 	"flag"
@@ -16,34 +16,34 @@ import (
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer() *analysis.Analyzer {
-	l := &logrlint{
+	l := &loggercheck{
 		enable: loggerCheckersFlag{
 			newStringSet(defaultEnabledCheckers...),
 		},
 	}
 
 	a := &analysis.Analyzer{
-		Name:     "logrlint",
+		Name:     "loggercheck",
 		Doc:      Doc,
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
 	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
-	a.Flags.Init("logrlint", flag.ExitOnError)
+	a.Flags.Init("loggercheck", flag.ExitOnError)
 	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
 	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
 	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerKeys))
 	return a
 }
 
-type logrlint struct {
+type loggercheck struct {
 	disableAll bool               // flag -disableall
 	disable    loggerCheckersFlag // flag -disable
 	enable     loggerCheckersFlag // flag -enable
 }
 
-func (l *logrlint) isCheckerDisabled(name string) bool {
+func (l *loggercheck) isCheckerDisabled(name string) bool {
 	if l.disableAll {
 		return !l.enable.Has(name)
 	}
@@ -53,7 +53,7 @@ func (l *logrlint) isCheckerDisabled(name string) bool {
 	return !l.enable.Has(name)
 }
 
-func (l *logrlint) getLoggerFuncs(pkgPath string) stringSet {
+func (l *loggercheck) getLoggerFuncs(pkgPath string) stringSet {
 	for name, entry := range loggerCheckersByName {
 		if l.isCheckerDisabled(name) {
 			// Skip ignored logger checker.
@@ -105,7 +105,7 @@ func decorateVendoredFuncs(entryFuncs stringSet, currentPkgImport, packageImport
 	return funcs
 }
 
-func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
+func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return false
@@ -115,7 +115,7 @@ func (l *logrlint) isValidLoggerFunc(fn *types.Func) bool {
 	return funcs.Has(fn.FullName())
 }
 
-func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
+func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
 	fn, _ := typeutil.Callee(pass.TypesInfo, call).(*types.Func)
 	if fn == nil {
 		return // function pointer is not supported
@@ -158,7 +158,7 @@ func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr)
 	}
 }
 
-func (l *logrlint) run(pass *analysis.Pass) (interface{}, error) {
+func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),
