@@ -33,7 +33,7 @@ Flags:
   -disableall
         disable all logger checkers
   -enable value
-        comma-separated list of enabled logger checker (klog,logr) (default klog,logr)
+        comma-separated list of enabled logger checker (klog,logr,zap) (default klog,logr,zap)
   -fix
         apply all suggested fixes
   -flags
