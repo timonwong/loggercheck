@@ -85,8 +85,13 @@ func decorateVendoredFuncs(entryFuncs stringSet, currentPkgImport, packageImport
 				continue // invalid pattern
 			}
 
-			leftOver := strings.TrimPrefix(importOrReceiver, "("+packageImport+".")
-			importOrReceiver = fmt.Sprintf("(%s.%s", currentPkgImport, leftOver)
+			var pointerIndicator string
+			if strings.HasPrefix(importOrReceiver[1:], "*") { // pointer type
+				pointerIndicator = "*"
+			}
+
+			leftOver := strings.TrimPrefix(importOrReceiver, "("+pointerIndicator+packageImport+".")
+			importOrReceiver = fmt.Sprintf("(%s%s.%s", pointerIndicator, currentPkgImport, leftOver)
 		} else { // is import
 			importOrReceiver = currentPkgImport
 		}
