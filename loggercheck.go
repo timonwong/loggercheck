@@ -1,12 +1,12 @@
 package loggercheck
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/types"
 	"strings"
+	"sync"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -45,28 +45,13 @@ func defaultFlags(fs *flag.FlagSet, l *loggercheck) {
 	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
 	fs.Init("loggercheck", flag.ExitOnError)
 	fs.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
-
-	fs.Func("logger", "add extra logger checker, format: name:packageImport:funcs, "+
-		"example: mylogger:example.com/mylogger:(example.com/mylogger.Logger).Info,(example.com/mylogger.Logger).Error",
-		func(s string) error {
-			if strings.Count(s, ":") != 2 {
-				return errors.New("invalid logger checker")
-			}
-			checker := strings.SplitN(s, ":", 3)
-			for _, v := range checker {
-				if v == "" {
-					return errors.New("invalid logger checker")
-				}
-			}
-			funcNames := strings.Split(checker[2], ",")
-			addLogger(checker[0], checker[1], funcNames)
-			return nil
-		})
+	fs.Var(&l.config, "config", "config file path, use `sample` as filename to get sample config")
 }
 
 type loggercheck struct {
 	disableFlags bool
 	disable      loggerCheckersFlag // flag -disable
+	config       configFlag         // flag -cfg
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
@@ -178,7 +163,20 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 	}
 }
 
+var cfgInitOnce sync.Once
+
 func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
+	if l.config.cfg != nil {
+		cfgInitOnce.Do(func() {
+			l.disable = loggerCheckersFlag{
+				newStringSet(l.config.cfg.Disable...),
+			}
+			for _, ck := range l.config.cfg.CustomCheckers {
+				addLogger(ck.Name, ck.PackageImport, ck.Funcs)
+			}
+		})
+	}
+
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),
