@@ -13,9 +13,3 @@ func WithConfig(cfg *Config) Option {
 		l.config.cfg = cfg
 	}
 }
-
-func WithDisableFlags(disable bool) Option {
-	return func(l *loggercheck) {
-		l.disableFlags = disable
-	}
-}

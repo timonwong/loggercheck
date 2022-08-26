@@ -34,14 +34,12 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	if !l.disableFlags {
-		defaultFlags(&a.Flags, l)
-	}
+	initFlags(&a.Flags, l)
 
 	return a
 }
 
-func defaultFlags(fs *flag.FlagSet, l *loggercheck) {
+func initFlags(fs *flag.FlagSet, l *loggercheck) {
 	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
 	fs.Init("loggercheck", flag.ExitOnError)
 	fs.Var(&l.config, "config", `config file path, use "sample" as filename to get sample config`)
@@ -49,9 +47,8 @@ func defaultFlags(fs *flag.FlagSet, l *loggercheck) {
 }
 
 type loggercheck struct {
-	disableFlags bool
-	disable      loggerCheckersFlag // flag -disable
-	config       configFlag         // flag -cfg
+	disable loggerCheckersFlag // flag -disable
+	config  configFlag         // flag -cfg
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {

@@ -115,7 +115,6 @@ func TestOptions(t *testing.T) {
 		{
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
-				loggercheck.WithDisableFlags(true),
 				customLogger,
 				loggercheck.WithDisable([]string{"klog", "logr", "zap"}),
 			},
@@ -123,7 +122,6 @@ func TestOptions(t *testing.T) {
 		{
 			name: "ignore-logr",
 			options: []loggercheck.Option{
-				loggercheck.WithDisableFlags(true),
 				customLogger,
 				loggercheck.WithDisable([]string{"logr"}),
 			},
