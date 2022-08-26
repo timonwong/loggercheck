@@ -22,8 +22,7 @@ jobs:
 
       - name: Build
         run: |
-          make build
-          make build-plugin
+          make build-all
 
       - name: Test
         run: make test
