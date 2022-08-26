@@ -56,3 +56,10 @@ func (m loggerCheckerMap) Keys() []string {
 	sort.Strings(names)
 	return names
 }
+
+func addLogger(name, packageImport string, funcs []string) {
+	loggerCheckersByName[name] = loggerChecker{
+		packageImport: packageImport,
+		funcs:         newStringSet(funcs...),
+	}
+}

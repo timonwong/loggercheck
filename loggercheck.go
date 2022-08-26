@@ -1,6 +1,7 @@
 package loggercheck
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -15,8 +16,16 @@ import (
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
-func NewAnalyzer() *analysis.Analyzer {
-	l := &loggercheck{}
+func NewAnalyzer(opts ...Option) *analysis.Analyzer {
+	l := &loggercheck{
+		disable: loggerCheckersFlag{
+			newStringSet(),
+		},
+	}
+
+	for _, o := range opts {
+		o(l)
+	}
 
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
@@ -25,14 +34,39 @@ func NewAnalyzer() *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
-	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+	if !l.disableFlags {
+		defaultFlags(&a.Flags, l)
+	}
+
 	return a
 }
 
+func defaultFlags(fs *flag.FlagSet, l *loggercheck) {
+	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
+	fs.Init("loggercheck", flag.ExitOnError)
+	fs.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+
+	fs.Func("logger", "add extra logger checker, format: name:packageImport:funcs, "+
+		"example: mylogger:example.com/mylogger:(example.com/mylogger.Logger).Info,(example.com/mylogger.Logger).Error",
+		func(s string) error {
+			if strings.Count(s, ":") != 2 {
+				return errors.New("invalid logger checker")
+			}
+			checker := strings.SplitN(s, ":", 3)
+			for _, v := range checker {
+				if v == "" {
+					return errors.New("invalid logger checker")
+				}
+			}
+			funcNames := strings.Split(checker[2], ",")
+			addLogger(checker[0], checker[1], funcNames)
+			return nil
+		})
+}
+
 type loggercheck struct {
-	disable loggerCheckersFlag // flag -disable
+	disableFlags bool
+	disable      loggerCheckersFlag // flag -disable
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
