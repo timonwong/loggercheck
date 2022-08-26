@@ -14,6 +14,6 @@ type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
-		logrlint.Analyzer,
+		logrlint.NewAnalyzer(),
 	}
 }

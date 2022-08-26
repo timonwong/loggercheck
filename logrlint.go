@@ -12,8 +12,6 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
-var Analyzer = NewAnalyzer()
-
 func NewAnalyzer() *analysis.Analyzer {
 	l := &logrlint{}
 	a := &analysis.Analyzer{
