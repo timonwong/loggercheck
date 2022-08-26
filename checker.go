@@ -26,6 +26,19 @@ var loggerCheckersByName = loggerCheckerMap{
 			"(k8s.io/klog/v2.Verbose).ErrorS",
 		),
 	},
+	"zap": {
+		packageImport: "go.uber.org/zap",
+		funcs: newStringSet(
+			"(*go.uber.org/zap.SugaredLogger).With",
+			"(*go.uber.org/zap.SugaredLogger).Debugw",
+			"(*go.uber.org/zap.SugaredLogger).Infow",
+			"(*go.uber.org/zap.SugaredLogger).Warnw",
+			"(*go.uber.org/zap.SugaredLogger).Errorw",
+			"(*go.uber.org/zap.SugaredLogger).DPanicw",
+			"(*go.uber.org/zap.SugaredLogger).Panicw",
+			"(*go.uber.org/zap.SugaredLogger).Fatalw",
+		),
+	},
 }
 
 type loggerCheckerMap map[string]loggerChecker

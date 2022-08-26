@@ -2,9 +2,11 @@ package all
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"go.uber.org/zap"
 	"k8s.io/klog/v2"
 )
 
@@ -48,4 +50,30 @@ func ExampleKlog() {
 	// klog/v2 can expose logr logger
 	logger := klog.NewKlogr()
 	logger.Info("message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+}
+
+func ExampleZap() {
+	err := errors.New("example error")
+
+	// custom SugaredLogger
+	log := zap.NewExample().Sugar()
+	defer log.Sync()
+
+	log.Infow("abc", "key1", "value1")
+	log.Infow("abc", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
+
+	log.Errorw("message", "err", err, "key1", "value1")
+	log.Errorw("message", err, "key1", "value1", "key2", "value2") // want `odd number of arguments passed as key-value pairs for logging`
+
+	// with test
+	log.With("with_key1", "with_value1").Infow("message", "key1", "value1")
+	log.With("with_key1", "with_value1").Infow("message", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
+	log.With("with_key1").Infow("message", "key1", "value1")                        // want `odd number of arguments passed as key-value pairs for logging`
+
+	// default global SugaredLogger
+	zap.S().With("with_key1", "with_value1").Infow("message", "key1", "value1", "key2", "value2")
+	zap.S().Infow("message", "key1", "value1", "key2", "value2", "key3") // want `odd number of arguments passed as key-value pairs for logging`
+
+	zap.S().Errorw("message", "err", err, "key1", "value1")
+	zap.S().Errorw("message", err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
 }
