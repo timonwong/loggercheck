@@ -13,7 +13,7 @@ go install github.com/timonwong/logrlint/cmd/logrlint
 ## Usage
 
 ```shell
-logrlint: Checks logr and klog arguments.
+logrlint: Checks key valur pairs for common logger libraries (logr,klog,zap).
 
 Usage: logrlint [-flag] [package]
 
@@ -29,7 +29,7 @@ Flags:
   -debug string
         debug flags, any subset of "fpstv"
   -disable value
-        comma-separated list of disabled logger checker (klog,logr)
+        comma-separated list of disabled logger checker (klog,logr,zap)
   -disableall
         disable all logger checkers
   -enable value
@@ -46,6 +46,8 @@ Flags:
         no effect (deprecated)
   -tags string
         no effect (deprecated)
+  -test
+        indicates whether test files should be analyzed, too (default true)
   -trace string
         write trace log to this file
   -v    no effect (deprecated)

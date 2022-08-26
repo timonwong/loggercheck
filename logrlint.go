@@ -13,12 +13,12 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
-const Doc = `Checks logr and klog arguments.`
+const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer() *analysis.Analyzer {
 	l := &logrlint{
 		enable: loggerCheckersFlag{
-			stringSet: newStringSet(loggerCheckersByName.Names()...),
+			newStringSet(defaultEnabledCheckers...),
 		},
 	}
 
@@ -29,11 +29,11 @@ func NewAnalyzer() *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	checkerNames := strings.Join(loggerCheckersByName.Names(), ",")
+	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
 	a.Flags.Init("logrlint", flag.ExitOnError)
 	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
-	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerNames))
-	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerNames))
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerKeys))
 	return a
 }
 
@@ -47,7 +47,10 @@ func (l *logrlint) isCheckerDisabled(name string) bool {
 	if l.disableAll {
 		return !l.enable.Has(name)
 	}
-	return l.disable.Has(name)
+	if l.disable.Has(name) {
+		return true
+	}
+	return !l.enable.Has(name)
 }
 
 func (l *logrlint) getLoggerFuncs(pkgPath string) stringSet {

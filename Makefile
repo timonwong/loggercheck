@@ -1,3 +1,4 @@
+.PHONY: lint
 lint:
 	golangci-lint run ./...
 
@@ -16,3 +17,6 @@ build:
 .PHONY: build-plugin
 build-plugin:
 	CGO_ENABLED=1 go build -o bin/logrlint.so -buildmode=plugin ./plugin
+
+.PHONY: build-all
+build-all: build build-plugin
