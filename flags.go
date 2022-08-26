@@ -58,7 +58,7 @@ func (f *configFlag) Set(s string) error {
 
 	if s == "sample" {
 		f.dumpSampleConfig()
-		os.Exit(0)
+		return nil
 	}
 
 	content, err := os.ReadFile(s)
