@@ -11,11 +11,6 @@ import (
 
 func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, loggercheck.NewAnalyzer(), "a/all")
-}
-
-func TestKlogOnly(t *testing.T) {
-	testdata := analysistest.TestData()
 
 	testCases := []struct {
 		name     string
@@ -31,6 +26,24 @@ func TestKlogOnly(t *testing.T) {
 			patterns: "a/klogonly",
 			flags:    []string{"-disable=logr,zap"},
 		},
+		{
+			name:     "custom-only",
+			patterns: "a/customonly",
+			flags: []string{
+				"-disable=klog,logr,zap",
+				"-logger=mylogger:a/customonly:" +
+					"(*a/customonly.Logger).Debugw," +
+					"(*a/customonly.Logger).Infow," +
+					"(*a/customonly.Logger).Warnw," +
+					"(*a/customonly.Logger).Errorw," +
+					"(*a/customonly.Logger).With," +
+					"a/customonly.Debugw," +
+					"a/customonly.Infow," +
+					"a/customonly.Warnw," +
+					"a/customonly.Errorw," +
+					"a/customonly.With",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -40,46 +53,6 @@ func TestKlogOnly(t *testing.T) {
 			err := a.Flags.Parse(tc.flags)
 			require.NoError(t, err)
 			analysistest.Run(t, testdata, a, tc.patterns)
-		})
-	}
-}
-
-func TestCustomOnly(t *testing.T) {
-	testdata := analysistest.TestData()
-
-	customLoggerFlag := "-logger=mylogger:a/customonly:" +
-		"(*a/customonly.Logger).Debugw," +
-		"(*a/customonly.Logger).Infow," +
-		"(*a/customonly.Logger).Warnw," +
-		"(*a/customonly.Logger).Errorw," +
-		"(*a/customonly.Logger).With," +
-		"a/customonly.Debugw," +
-		"a/customonly.Infow," +
-		"a/customonly.Warnw," +
-		"a/customonly.Errorw," +
-		"a/customonly.With"
-
-	testCases := []struct {
-		name  string
-		flags []string
-	}{
-		{
-			name:  "disable-all-then-enable-mylogger",
-			flags: []string{customLoggerFlag, "-disable=logr"},
-		},
-		{
-			name:  "ignore-logr",
-			flags: []string{"-disable=logr", customLoggerFlag},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		a := loggercheck.NewAnalyzer()
-		t.Run(tc.name, func(t *testing.T) {
-			err := a.Flags.Parse(tc.flags)
-			require.NoError(t, err)
-			analysistest.Run(t, testdata, a, "a/customonly")
 		})
 	}
 }
