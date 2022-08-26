@@ -9,35 +9,32 @@ import (
 	"github.com/timonwong/loggercheck"
 )
 
-func TestAll(t *testing.T) {
+func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, loggercheck.NewAnalyzer(), "a/all")
-}
-
-func TestKlogOnly(t *testing.T) {
-	testdata := analysistest.TestData()
-	a := loggercheck.NewAnalyzer()
 
 	testCases := []struct {
-		name  string
-		flags []string
+		name     string
+		patterns string
+		flags    []string
 	}{
 		{
-			name:  "disable-all-then-enable-klog",
-			flags: []string{"-disableall", "-enable=klog"},
+			name:     "all",
+			patterns: "a/all",
 		},
 		{
-			name:  "just-disable-logr",
-			flags: []string{"-disable=klog"},
+			name:     "klogonly",
+			patterns: "a/klogonly",
+			flags:    []string{"-disable=logr,zap"},
 		},
 	}
 
+	a := loggercheck.NewAnalyzer()
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			err := a.Flags.Parse(tc.flags)
 			require.NoError(t, err)
-			analysistest.Run(t, testdata, a, "a/klogonly")
+			analysistest.Run(t, testdata, a, tc.patterns)
 		})
 	}
 }

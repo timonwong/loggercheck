@@ -16,11 +16,7 @@ import (
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer() *analysis.Analyzer {
-	l := &loggercheck{
-		enable: loggerCheckersFlag{
-			newStringSet(defaultEnabledCheckers...),
-		},
-	}
+	l := &loggercheck{}
 
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
@@ -31,26 +27,16 @@ func NewAnalyzer() *analysis.Analyzer {
 
 	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
 	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
 	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
-	a.Flags.Var(&l.enable, "enable", fmt.Sprintf("comma-separated list of enabled logger checker (%s)", checkerKeys))
 	return a
 }
 
 type loggercheck struct {
-	disableAll bool               // flag -disableall
-	disable    loggerCheckersFlag // flag -disable
-	enable     loggerCheckersFlag // flag -enable
+	disable loggerCheckersFlag // flag -disable
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
-	if l.disableAll {
-		return !l.enable.Has(name)
-	}
-	if l.disable.Has(name) {
-		return true
-	}
-	return !l.enable.Has(name)
+	return l.disable.Has(name)
 }
 
 func (l *loggercheck) getLoggerFuncs(pkgPath string) stringSet {
