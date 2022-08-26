@@ -12,21 +12,27 @@ import (
 	"golang.org/x/tools/go/types/typeutil"
 )
 
+const Doc = `Checks logr and klog arguments.`
+
 func NewAnalyzer() *analysis.Analyzer {
 	l := &logrlint{}
 	a := &analysis.Analyzer{
 		Name:     "logrlint",
-		Doc:      "Checks logr and klog arguments.",
+		Doc:      Doc,
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 	a.Flags.Init("logrlint", flag.ExitOnError)
-	a.Flags.Var(&l.ignoredLoggers, "ignoredloggers", "comma-separated list of ignored logger to check (logr,klog)")
+	a.Flags.BoolVar(&l.disableAll, "disableall", false, "disable all logger checkers")
+	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker")
+	a.Flags.Var(&l.enable, "enable", "comma-separated list of enabled logger checker")
 	return a
 }
 
 type logrlint struct {
-	ignoredLoggers ignoredLoggersFlag
+	disableAll bool               // flag -disableall
+	disable    loggerCheckersFlag // flag -disable
+	enable     loggerCheckersFlag // flag -enable
 }
 
 type loggerCheck struct {
@@ -45,9 +51,16 @@ var loggerCheckersByName = map[string]loggerCheck{
 	},
 }
 
+func (l *logrlint) isCheckerDisabled(name string) bool {
+	if l.disableAll {
+		return !l.enable.Has(name)
+	}
+	return l.disable.Has(name)
+}
+
 func (l *logrlint) getLoggerFuncNames(pkgPath string) stringSet {
 	for name, entry := range loggerCheckersByName {
-		if l.ignoredLoggers.Has(name) {
+		if l.isCheckerDisabled(name) {
 			// Skip ignored logger checker.
 			continue
 		}
@@ -112,7 +125,8 @@ func (l *logrlint) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr)
 			Pos:      firstArg.Pos(),
 			End:      lastArg.End(),
 			Category: "logging",
-			Message:  "odd number of arguments passed as key-value pairs for logging"})
+			Message:  "odd number of arguments passed as key-value pairs for logging",
+		})
 	}
 }
 

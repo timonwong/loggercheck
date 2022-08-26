@@ -9,7 +9,7 @@ import (
 )
 
 func TestIgnoredLoggerFlag(t *testing.T) {
-	f := ignoredLoggersFlag{}
+	f := loggerCheckersFlag{}
 
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)

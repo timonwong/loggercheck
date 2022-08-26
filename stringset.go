@@ -22,6 +22,10 @@ func (s stringSet) Has(item string) bool {
 }
 
 func (s stringSet) List() []string {
+	if len(s) == 0 {
+		return nil
+	}
+
 	res := make([]string, 0, len(s))
 	for key := range s {
 		res = append(res, key)

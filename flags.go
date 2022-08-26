@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-type ignoredLoggersFlag struct {
+type loggerCheckersFlag struct {
 	stringSet
 }
 
 // Set implements flag.Value interface.
-func (f *ignoredLoggersFlag) Set(s string) error {
+func (f *loggerCheckersFlag) Set(s string) error {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		f.stringSet = nil
@@ -28,7 +28,7 @@ func (f *ignoredLoggersFlag) Set(s string) error {
 }
 
 // String implements flag.Value interface
-func (f *ignoredLoggersFlag) String() string {
+func (f *loggerCheckersFlag) String() string {
 	return strings.Join(f.List(), ",")
 }
 

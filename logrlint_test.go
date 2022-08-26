@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/timonwong/logrlint"
 	"golang.org/x/tools/go/analysis/analysistest"
+
+	"github.com/timonwong/logrlint"
 )
 
 func TestAll(t *testing.T) {
@@ -16,7 +17,27 @@ func TestAll(t *testing.T) {
 func TestKlogOnly(t *testing.T) {
 	testdata := analysistest.TestData()
 	a := logrlint.NewAnalyzer()
-	err := a.Flags.Parse([]string{"-ignoredloggers=logr"})
-	require.NoError(t, err)
-	analysistest.Run(t, testdata, a, "a/klogonly")
+
+	testCases := []struct {
+		name  string
+		flags []string
+	}{
+		{
+			name:  "disable-all-then-enable-klog",
+			flags: []string{"-disableall", "-enable=klog"},
+		},
+		{
+			name:  "just-disable-logr",
+			flags: []string{"-disable=klog"},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			err := a.Flags.Parse(tc.flags)
+			require.NoError(t, err)
+			analysistest.Run(t, testdata, a, "a/klogonly")
+		})
+	}
 }
