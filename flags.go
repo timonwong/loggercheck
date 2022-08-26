@@ -35,7 +35,7 @@ func (f *loggerCheckersFlag) String() string {
 func validateIgnoredLoggerFlag(set stringSet) error {
 	for key := range set {
 		if _, ok := loggerCheckersByName[key]; !ok {
-			return fmt.Errorf("unknown logger: %s", key)
+			return fmt.Errorf("unknown logger: %q", key)
 		}
 	}
 

@@ -16,7 +16,12 @@ import (
 const Doc = `Checks logr and klog arguments.`
 
 func NewAnalyzer() *analysis.Analyzer {
-	l := &logrlint{}
+	l := &logrlint{
+		enable: loggerCheckersFlag{
+			stringSet: newStringSet(loggerCheckersByName.Names()...),
+		},
+	}
+
 	a := &analysis.Analyzer{
 		Name:     "logrlint",
 		Doc:      Doc,

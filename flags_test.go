@@ -26,5 +26,5 @@ func TestIgnoredLoggerFlag(t *testing.T) {
 	assert.Equal(t, []string{"klog", "logr"}, f.List())
 
 	err = fs.Parse([]string{"-ignoredloggers=logr,klog,unknownlogger"})
-	assert.ErrorContains(t, err, "-ignoredloggers: unknown logger: unknownlogger")
+	assert.ErrorContains(t, err, "-ignoredloggers: unknown logger: \"unknownlogger\"")
 }
