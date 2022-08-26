@@ -26,3 +26,9 @@ jobs:
 
       - name: Test
         run: make test
+
+      - uses: codecov/codecov-action@v3
+        with:
+          files: cover.out
+          fail_ci_if_error: true
+          verbose: true
