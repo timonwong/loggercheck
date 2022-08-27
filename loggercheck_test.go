@@ -66,7 +66,6 @@ custom-checkers:
 			name:     "custom-only",
 			patterns: "a/customonly",
 			flags: []string{
-				"-disable=klog,logr,zap",
 				"-config=" + testConfigFile,
 			},
 		},
