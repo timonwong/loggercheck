@@ -46,13 +46,13 @@ func validateIgnoredLoggerFlag(set sets.StringSet) error {
 	return nil
 }
 
-type patternFileFlag struct {
+type ruleFileFlag struct {
 	filename      string
 	patternGroups pattern.GroupList
 }
 
 // Set implements flag.Value interface.
-func (f *patternFileFlag) Set(filename string) error {
+func (f *ruleFileFlag) Set(filename string) error {
 	r, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -70,6 +70,6 @@ func (f *patternFileFlag) Set(filename string) error {
 }
 
 // String implements flag.Value interface
-func (f *patternFileFlag) String() string {
+func (f *ruleFileFlag) String() string {
 	return f.filename
 }

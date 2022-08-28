@@ -17,6 +17,6 @@ func (c *Config) init(l *loggercheck) {
 
 	// Init configs from external API call (golangci-lint for example).
 	l.disable.StringSet = c.Disable
-	l.patternFile.filename = "<internal>"
-	l.patternFile.patternGroups = c.PatternGroups
+	l.ruleFile.filename = "<internal>"
+	l.ruleFile.patternGroups = c.PatternGroups
 }

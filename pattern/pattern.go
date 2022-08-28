@@ -12,7 +12,7 @@ import (
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 )
 
-var InvalidPatternError = errors.New("invalid pattern")
+var ErrInvalidPattern = errors.New("invalid pattern")
 
 type GroupList []Group
 
@@ -102,7 +102,7 @@ func ParseRule(rule string) (pat Pattern, err error) {
 		return r == '.' || r == '/'
 	})
 	if lastDot == -1 || rule[lastDot] == '/' {
-		return Pattern{}, InvalidPatternError
+		return Pattern{}, ErrInvalidPattern
 	}
 
 	importOrReceiver := rule[:lastDot]
@@ -110,7 +110,7 @@ func ParseRule(rule string) (pat Pattern, err error) {
 
 	if strings.HasPrefix(rule, "(") { // package
 		if !strings.HasSuffix(importOrReceiver, ")") {
-			return Pattern{}, InvalidPatternError
+			return Pattern{}, ErrInvalidPattern
 		}
 
 		var isPointerReceiver bool
@@ -125,7 +125,7 @@ func ParseRule(rule string) (pat Pattern, err error) {
 			return r == '.' || r == '/'
 		})
 		if typeDotIdx == -1 || receiver[typeDotIdx] == '/' {
-			return Pattern{}, InvalidPatternError
+			return Pattern{}, ErrInvalidPattern
 		}
 		receiverType := receiver[typeDotIdx+1:]
 		if isPointerReceiver {

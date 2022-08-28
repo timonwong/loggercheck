@@ -17,17 +17,17 @@ func TestParsePattern(t *testing.T) {
 		{
 			name:      "invalid-pattern-missing-paren",
 			pattern:   "(*go.uber.org/zap/SugaredLogger.Debugw",
-			wantError: InvalidPatternError,
+			wantError: ErrInvalidPattern,
 		},
 		{
 			name:      "invalid-pattern-receiver-no-type",
 			pattern:   "(*go.uber.org/zap/SugaredLogger).Debugw",
-			wantError: InvalidPatternError,
+			wantError: ErrInvalidPattern,
 		},
 		{
 			name:      "invalid-pattern-just-import",
 			pattern:   "go.uber.org/zap",
-			wantError: InvalidPatternError,
+			wantError: ErrInvalidPattern,
 		},
 		{
 			name:    "zap",

@@ -34,7 +34,7 @@ func TestLinter(t *testing.T) {
 			patterns: "a/customonly",
 			flags: []string{
 				"-disable=logr",
-				fmt.Sprintf("-patternfile=%s", "testdata/custom-patterns.txt"),
+				fmt.Sprintf("-rulefile=%s", "testdata/custom-rules.txt"),
 			},
 		},
 	}

@@ -29,60 +29,13 @@ func TestIgnoredLoggerFlag(t *testing.T) {
 	assert.ErrorContains(t, err, "-ignoredloggers: unknown logger: \"unknownlogger\"")
 }
 
-//
-//func TestConfigFlagLoadFail(t *testing.T) {
-//	f := configFlag{}
-//
-//	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-//	fs.SetOutput(io.Discard)
-//	fs.Var(&f, "config", "")
-//
-//	err := fs.Parse([]string{"-config=/tmp/absolute-not-exists-config.yaml"})
-//	assert.ErrorContains(t, err, "read cfg file /tmp/absolute-not-exists-config.yaml failed")
-//}
-//
-//func TestConfigFlagLoadConfig(t *testing.T) {
-//	l := &loggercheck{}
-//	l.config = configFlag{l: l}
-//
-//	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-//	fs.SetOutput(io.Discard)
-//	fs.Var(&l.config, "config", "")
-//
-//	fs.Var(&l.disable, "disable", "")
-//
-//	testConfig := []byte(`# loggercheck sample config
-//disable:
-//    - klog
-//    - logr
-//custom-checkers: []
-//`)
-//	configFile, err := os.CreateTemp("/tmp", "loggercheck-test-cfg-")
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	if _, errWrite := configFile.Write(testConfig); errWrite != nil {
-//		t.Errorf("write test config file failed: %v", errWrite)
-//	}
-//	configFile.Close()
-//
-//	testConfigFile := configFile.Name()
-//	t.Cleanup(func() {
-//		os.Remove(testConfigFile)
-//	})
-//
-//	err = fs.Parse([]string{"-config=" + testConfigFile})
-//	assert.NoError(t, err)
-//	assert.Equal(t, []string{"klog", "logr"}, l.disable.List())
-//
-//	// config file should not override `-disable` flag value
-//	err = fs.Parse([]string{"-config=" + testConfigFile, "-disable=klog"})
-//	assert.NoError(t, err)
-//	assert.Equal(t, []string{"klog"}, l.disable.List())
-//
-//	// config file should not override `-disable` flag value
-//	err = fs.Parse([]string{"-disable=logr", "-config=" + testConfigFile})
-//	assert.NoError(t, err)
-//	assert.Equal(t, []string{"logr"}, l.disable.List())
-//}
+func TestWrongRuleFile(t *testing.T) {
+	f := ruleFileFlag{}
+
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.Var(&f, "rulefile", "")
+
+	err := fs.Parse([]string{"-rulefile=testdata/xxx-not-exists-xxx.yaml"})
+	assert.ErrorContains(t, err, "open testdata/xxx-not-exists-xxx.yaml: no such file or directory")
+}

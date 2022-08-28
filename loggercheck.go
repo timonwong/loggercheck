@@ -31,14 +31,14 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 
 	checkerKeys := strings.Join(staticPatternGroups.Names(), ",")
 	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.Var(&l.patternFile, "patternfile", "path to a file contains a list of patterns")
-	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+	a.Flags.Var(&l.ruleFile, "rulefile", "path to a file contains a list of pattern rules.")
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s).", checkerKeys))
 	return a
 }
 
 type loggercheck struct {
-	disable     loggerCheckersFlag // flag -disable
-	patternFile patternFileFlag    // flag -patternfile
+	disable  loggerCheckersFlag // flag -disable
+	ruleFile ruleFileFlag       // flag -rulefile
 
 	cfg *Config // used for external integration, for example golangci-lint
 }
@@ -65,7 +65,7 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		}
 	}
 
-	customPatternGroups := l.patternFile.patternGroups
+	customPatternGroups := l.ruleFile.patternGroups
 	for i := range customPatternGroups {
 		pg := &customPatternGroups[i]
 		if pg.Match(fn, pkg) {
