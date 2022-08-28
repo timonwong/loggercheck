@@ -1,4 +1,4 @@
-package loggercheck
+package pattern
 
 import (
 	"bufio"
@@ -12,11 +12,11 @@ import (
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 )
 
-var errInvalidPattern = errors.New("invalid pattern")
+var InvalidPatternError = errors.New("invalid pattern")
 
-type PatternGroupList []PatternGroup
+type GroupList []Group
 
-func (l PatternGroupList) HasName(name string) bool {
+func (l GroupList) HasName(name string) bool {
 	for _, pg := range l {
 		if pg.Name == name {
 			return true
@@ -25,7 +25,7 @@ func (l PatternGroupList) HasName(name string) bool {
 	return false
 }
 
-func (l PatternGroupList) Names() []string {
+func (l GroupList) Names() []string {
 	keys := make([]string, len(l))
 	visited := make(map[string]struct{})
 	for i, pg := range l {
@@ -39,46 +39,13 @@ func (l PatternGroupList) Names() []string {
 	return keys
 }
 
-func parsePatternFile(r io.Reader) (result []PatternGroup, err error) {
-	scanner := bufio.NewScanner(r)
-	var lineCnt int
-
-	patternsByImport := make(map[string][]Pattern)
-	for scanner.Scan() {
-		lineCnt++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-
-		if strings.HasPrefix(line, "#") { // comments
-			continue
-		}
-
-		pat, err := parsePattern(line)
-		if err != nil {
-			return nil, fmt.Errorf("error parse pattern at line %d: %w", lineCnt, err)
-		}
-		patternsByImport[pat.PackageImport] = append(patternsByImport[pat.PackageImport], pat)
-	}
-
-	for packageImport, patterns := range patternsByImport {
-		result = append(result, PatternGroup{
-			Name:          "custom", // NOTE(timonwong) Always "custom" for external patterns
-			PackageImport: packageImport,
-			Patterns:      patterns,
-		})
-	}
-	return result, nil
-}
-
-type PatternGroup struct {
+type Group struct {
 	Name          string
 	PackageImport string
 	Patterns      []Pattern
 }
 
-func (g *PatternGroup) Match(fn *types.Func, pkg *types.Package) bool {
+func (g *Group) Match(fn *types.Func, pkg *types.Package) bool {
 	pkgPath := pkg.Path()
 	if pkgPath != g.PackageImport && !strings.HasSuffix(pkgPath, "/vendor/"+g.PackageImport) {
 		return false
@@ -130,20 +97,20 @@ func (p *Pattern) match(fn *types.Func, sig *types.Signature) bool {
 	return true
 }
 
-func parsePattern(s string) (pat Pattern, err error) {
-	lastDot := strings.LastIndexFunc(s, func(r rune) bool {
+func ParseRule(rule string) (pat Pattern, err error) {
+	lastDot := strings.LastIndexFunc(rule, func(r rune) bool {
 		return r == '.' || r == '/'
 	})
-	if lastDot == -1 || s[lastDot] == '/' {
-		return Pattern{}, errInvalidPattern
+	if lastDot == -1 || rule[lastDot] == '/' {
+		return Pattern{}, InvalidPatternError
 	}
 
-	importOrReceiver := s[:lastDot]
-	pat.FuncName = s[lastDot+1:]
+	importOrReceiver := rule[:lastDot]
+	pat.FuncName = rule[lastDot+1:]
 
-	if strings.HasPrefix(s, "(") { // package
+	if strings.HasPrefix(rule, "(") { // package
 		if !strings.HasSuffix(importOrReceiver, ")") {
-			return Pattern{}, errInvalidPattern
+			return Pattern{}, InvalidPatternError
 		}
 
 		var isPointerReceiver bool
@@ -158,7 +125,7 @@ func parsePattern(s string) (pat Pattern, err error) {
 			return r == '.' || r == '/'
 		})
 		if typeDotIdx == -1 || receiver[typeDotIdx] == '/' {
-			return Pattern{}, errInvalidPattern
+			return Pattern{}, InvalidPatternError
 		}
 		receiverType := receiver[typeDotIdx+1:]
 		if isPointerReceiver {
@@ -171,4 +138,56 @@ func parsePattern(s string) (pat Pattern, err error) {
 	}
 
 	return pat, nil
+}
+
+func ParseRules(rules []string) (result GroupList, err error) {
+	patternsByImport := make(map[string][]Pattern)
+	for i, rule := range rules {
+		pat, err := ParseRule(rule)
+		if err != nil {
+			return nil, fmt.Errorf("error parse pattern at line %d: %w", i+1, err)
+		}
+		patternsByImport[pat.PackageImport] = append(patternsByImport[pat.PackageImport], pat)
+	}
+
+	for packageImport, patterns := range patternsByImport {
+		result = append(result, Group{
+			Name:          "custom", // NOTE(timonwong) Always "custom" for external patterns
+			PackageImport: packageImport,
+			Patterns:      patterns,
+		})
+	}
+	return result, nil
+}
+
+func ParseRuleFile(r io.Reader) (result GroupList, err error) {
+	scanner := bufio.NewScanner(r)
+	var lineCnt int
+	patternsByImport := make(map[string][]Pattern)
+	for scanner.Scan() {
+		lineCnt++
+		rule := strings.TrimSpace(scanner.Text())
+		if rule == "" {
+			continue
+		}
+
+		if strings.HasPrefix(rule, "#") { // comments
+			continue
+		}
+
+		pat, err := ParseRule(rule)
+		if err != nil {
+			return nil, fmt.Errorf("error parse pattern at line %d: %w", lineCnt, err)
+		}
+		patternsByImport[pat.PackageImport] = append(patternsByImport[pat.PackageImport], pat)
+	}
+
+	for packageImport, patterns := range patternsByImport {
+		result = append(result, Group{
+			Name:          "custom", // NOTE(timonwong) Always "custom" for external patterns
+			PackageImport: packageImport,
+			Patterns:      patterns,
+		})
+	}
+	return result, nil
 }

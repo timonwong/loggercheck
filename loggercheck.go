@@ -21,6 +21,7 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		o(l)
 	}
 
+	l.cfg.init(l)
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,
@@ -38,6 +39,8 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 type loggercheck struct {
 	disable     loggerCheckersFlag // flag -disable
 	patternFile patternFileFlag    // flag -patternfile
+
+	cfg *Config // used for external integration, for example golangci-lint
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {

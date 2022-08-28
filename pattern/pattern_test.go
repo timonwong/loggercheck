@@ -1,4 +1,4 @@
-package loggercheck
+package pattern
 
 import (
 	"testing"
@@ -17,17 +17,17 @@ func TestParsePattern(t *testing.T) {
 		{
 			name:      "invalid-pattern-missing-paren",
 			pattern:   "(*go.uber.org/zap/SugaredLogger.Debugw",
-			wantError: errInvalidPattern,
+			wantError: InvalidPatternError,
 		},
 		{
 			name:      "invalid-pattern-receiver-no-type",
 			pattern:   "(*go.uber.org/zap/SugaredLogger).Debugw",
-			wantError: errInvalidPattern,
+			wantError: InvalidPatternError,
 		},
 		{
 			name:      "invalid-pattern-just-import",
 			pattern:   "go.uber.org/zap",
-			wantError: errInvalidPattern,
+			wantError: InvalidPatternError,
 		},
 		{
 			name:    "zap",
@@ -64,7 +64,7 @@ func TestParsePattern(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := parsePattern(tc.pattern)
+			got, err := ParseRule(tc.pattern)
 			if tc.wantError != nil {
 				assert.EqualError(t, err, tc.wantError.Error())
 			} else {

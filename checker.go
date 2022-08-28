@@ -1,8 +1,12 @@
 package loggercheck
 
-import "fmt"
+import (
+	"fmt"
 
-var staticPatternGroups = PatternGroupList{
+	"github.com/timonwong/loggercheck/pattern"
+)
+
+var staticPatternGroups = pattern.GroupList{
 	mustNewPatternGroup("logr", []string{
 		"(github.com/go-logr/logr.Logger).Error",
 		"(github.com/go-logr/logr.Logger).Info",
@@ -30,15 +34,15 @@ var staticPatternGroups = PatternGroupList{
 
 // mustNewPatternGroup only called at init, catch errors during development.
 // In production it will not panic.
-func mustNewPatternGroup(name string, patternLines []string) PatternGroup {
+func mustNewPatternGroup(name string, patternLines []string) pattern.Group {
 	if len(patternLines) == 0 {
 		panic("empty pattern lines")
 	}
 
 	var packageImport string
-	patterns := make([]Pattern, 0, len(patternLines))
+	patterns := make([]pattern.Pattern, 0, len(patternLines))
 	for _, s := range patternLines {
-		pat, err := parsePattern(s)
+		pat, err := pattern.ParseRule(s)
 		if err != nil {
 			panic(err)
 		}
@@ -50,7 +54,7 @@ func mustNewPatternGroup(name string, patternLines []string) PatternGroup {
 		}
 	}
 
-	return PatternGroup{
+	return pattern.Group{
 		Name:          name,
 		PackageImport: packageImport,
 		Patterns:      patterns,
