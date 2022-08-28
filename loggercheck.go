@@ -17,20 +17,8 @@ const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	l := &loggercheck{}
-
-	l.config.l = l
-
 	for _, o := range opts {
 		o(l)
-	}
-
-	if l.config.cfg != nil {
-		l.disable = loggerCheckersFlag{
-			newStringSet(l.config.cfg.Disable...),
-		}
-		for _, ck := range l.config.cfg.CustomCheckers {
-			addLogger(ck.Name, ck.PackageImport, ck.Funcs)
-		}
 	}
 
 	a := &analysis.Analyzer{
@@ -40,77 +28,20 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	initFlags(&a.Flags, l)
-
+	checkerKeys := strings.Join(staticPatternGroups.Names(), ",")
+	a.Flags.Init("loggercheck", flag.ExitOnError)
+	a.Flags.Var(&l.patternFile, "patternfile", "path to a file contains a list of patterns")
+	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
 	return a
 }
 
-func initFlags(fs *flag.FlagSet, l *loggercheck) {
-	checkerKeys := strings.Join(loggerCheckersByName.Keys(), ",")
-	fs.Init("loggercheck", flag.ExitOnError)
-	fs.Var(&l.config, "config", `config file path, use "sample" as filename to get sample config`)
-	fs.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
-}
-
 type loggercheck struct {
-	disable loggerCheckersFlag // flag -disable
-	config  configFlag         // flag -cfg
+	disable     loggerCheckersFlag // flag -disable
+	patternFile patternFileFlag    // flag -patternfile
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
 	return l.disable.Has(name)
-}
-
-func (l *loggercheck) getLoggerFuncs(pkgPath string) stringSet {
-	for name, entry := range loggerCheckersByName {
-		if l.isCheckerDisabled(name) {
-			// Skip ignored logger checker.
-			continue
-		}
-
-		if entry.packageImport == pkgPath {
-			return entry.funcs
-		}
-
-		if strings.HasSuffix(pkgPath, "/vendor/"+entry.packageImport) {
-			return decorateVendoredFuncs(entry.funcs, pkgPath, entry.packageImport)
-		}
-	}
-
-	return nil
-}
-
-func decorateVendoredFuncs(entryFuncs stringSet, currentPkgImport, packageImport string) stringSet {
-	funcs := make(stringSet, len(entryFuncs))
-	for fn := range entryFuncs {
-		lastDot := strings.LastIndex(fn, ".")
-		if lastDot == -1 {
-			continue // invalid pattern
-		}
-
-		importOrReceiver := fn[:lastDot]
-		fnName := fn[lastDot+1:]
-
-		if strings.HasPrefix(importOrReceiver, "(") { // is receiver
-			if !strings.HasSuffix(importOrReceiver, ")") {
-				continue // invalid pattern
-			}
-
-			var pointerIndicator string
-			if strings.HasPrefix(importOrReceiver[1:], "*") { // pointer type
-				pointerIndicator = "*"
-			}
-
-			leftOver := strings.TrimPrefix(importOrReceiver, "("+pointerIndicator+packageImport+".")
-			importOrReceiver = fmt.Sprintf("(%s%s.%s", pointerIndicator, currentPkgImport, leftOver)
-		} else { // is import
-			importOrReceiver = currentPkgImport
-		}
-
-		fn = fmt.Sprintf("%s.%s", importOrReceiver, fnName)
-		funcs.Insert(fn)
-	}
-	return funcs
 }
 
 func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
@@ -119,8 +50,27 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		return false
 	}
 
-	funcs := l.getLoggerFuncs(pkg.Path())
-	return funcs.Has(fn.FullName())
+	for i := range staticPatternGroups {
+		pg := &staticPatternGroups[i]
+		if l.isCheckerDisabled(pg.Name) {
+			// Skip ignored logger checker.
+			continue
+		}
+
+		if pg.Match(fn, pkg) {
+			return true
+		}
+	}
+
+	customPatternGroups := l.patternFile.patternGroups
+	for i := range customPatternGroups {
+		pg := &customPatternGroups[i]
+		if pg.Match(fn, pkg) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {

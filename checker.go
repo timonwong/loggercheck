@@ -1,65 +1,58 @@
 package loggercheck
 
-import "sort"
+import "fmt"
 
-var loggerCheckersByName = loggerCheckerMap{
-	"logr": {
-		packageImport: "github.com/go-logr/logr",
-		funcs: newStringSet(
-			"(github.com/go-logr/logr.Logger).Error",
-			"(github.com/go-logr/logr.Logger).Info",
-			"(github.com/go-logr/logr.Logger).WithValues"),
-	},
-	"klog": {
-		packageImport: "k8s.io/klog/v2",
-		funcs: newStringSet(
-			"k8s.io/klog/v2.InfoS",
-			"k8s.io/klog/v2.InfoSDepth",
-			"k8s.io/klog/v2.ErrorS",
-			"(k8s.io/klog/v2.Verbose).InfoS",
-			"(k8s.io/klog/v2.Verbose).InfoSDepth",
-			"(k8s.io/klog/v2.Verbose).ErrorS",
-		),
-	},
-	"zap": {
-		packageImport: "go.uber.org/zap",
-		funcs: newStringSet(
-			"(*go.uber.org/zap.SugaredLogger).With",
-			"(*go.uber.org/zap.SugaredLogger).Debugw",
-			"(*go.uber.org/zap.SugaredLogger).Infow",
-			"(*go.uber.org/zap.SugaredLogger).Warnw",
-			"(*go.uber.org/zap.SugaredLogger).Errorw",
-			"(*go.uber.org/zap.SugaredLogger).DPanicw",
-			"(*go.uber.org/zap.SugaredLogger).Panicw",
-			"(*go.uber.org/zap.SugaredLogger).Fatalw",
-		),
-	},
+var staticPatternGroups = PatternGroupList{
+	mustNewPatternGroup("logr", []string{
+		"(github.com/go-logr/logr.Logger).Error",
+		"(github.com/go-logr/logr.Logger).Info",
+		"(github.com/go-logr/logr.Logger).WithValues",
+	}),
+	mustNewPatternGroup("klog", []string{
+		"k8s.io/klog/v2.InfoS",
+		"k8s.io/klog/v2.InfoSDepth",
+		"k8s.io/klog/v2.ErrorS",
+		"(k8s.io/klog/v2.Verbose).InfoS",
+		"(k8s.io/klog/v2.Verbose).InfoSDepth",
+		"(k8s.io/klog/v2.Verbose).ErrorS",
+	}),
+	mustNewPatternGroup("zap", []string{
+		"(*go.uber.org/zap.SugaredLogger).With",
+		"(*go.uber.org/zap.SugaredLogger).Debugw",
+		"(*go.uber.org/zap.SugaredLogger).Infow",
+		"(*go.uber.org/zap.SugaredLogger).Warnw",
+		"(*go.uber.org/zap.SugaredLogger).Errorw",
+		"(*go.uber.org/zap.SugaredLogger).DPanicw",
+		"(*go.uber.org/zap.SugaredLogger).Panicw",
+		"(*go.uber.org/zap.SugaredLogger).Fatalw",
+	}),
 }
 
-type loggerChecker struct {
-	packageImport string
-	funcs         stringSet
-}
-
-type loggerCheckerMap map[string]loggerChecker
-
-func (m loggerCheckerMap) HasKey(key string) bool {
-	_, ok := m[key]
-	return ok
-}
-
-func (m loggerCheckerMap) Keys() []string {
-	names := make([]string, 0, len(m))
-	for name := range m {
-		names = append(names, name)
+// mustNewPatternGroup only called at init, catch errors during development.
+// In production it will not panic.
+func mustNewPatternGroup(name string, patternLines []string) PatternGroup {
+	if len(patternLines) == 0 {
+		panic("empty pattern lines")
 	}
-	sort.Strings(names)
-	return names
-}
 
-func addLogger(name, packageImport string, funcs []string) {
-	loggerCheckersByName[name] = loggerChecker{
-		packageImport: packageImport,
-		funcs:         newStringSet(funcs...),
+	var packageImport string
+	patterns := make([]Pattern, 0, len(patternLines))
+	for _, s := range patternLines {
+		pat, err := parsePattern(s)
+		if err != nil {
+			panic(err)
+		}
+		patterns = append(patterns, pat)
+		if packageImport == "" {
+			packageImport = pat.PackageImport
+		} else if packageImport != pat.PackageImport {
+			panic(fmt.Sprintf("package import mismatch: %s != %s", packageImport, pat.PackageImport))
+		}
+	}
+
+	return PatternGroup{
+		Name:          name,
+		PackageImport: packageImport,
+		Patterns:      patterns,
 	}
 }

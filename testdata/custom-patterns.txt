@@ -1,0 +1,13 @@
+# This is comment
+# Pointer receivers
+(*a/customonly.Logger).Debugw
+(*a/customonly.Logger).Infow
+(*a/customonly.Logger).Warnw
+(*a/customonly.Logger).Errorw
+(*a/customonly.Logger).With
+# Exported package level functions
+a/customonly.Debugw
+a/customonly.Infow
+a/customonly.Warnw
+a/customonly.Errorw
+a/customonly.With

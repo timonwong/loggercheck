@@ -8,7 +8,7 @@ test-deps:
 
 .PHONY: test
 test: test-deps
-	go test -v -count=1 -covermode=atomic -coverprofile=cover.out -coverpkg ./... ./...
+	go test -v -covermode=atomic -coverprofile=cover.out -coverpkg ./... ./...
 
 .PHONY: build
 build:
