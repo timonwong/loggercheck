@@ -39,7 +39,7 @@ Flags:
   -debug string
         debug flags, any subset of "fpstv"
   -disable value
-        comma-separated list of disabled logger checker (klog,logr,zap).
+        comma-separated list of disabled logger checker (klog,logr,zap)
   -fix
         apply all suggested fixes
   -flags
@@ -49,7 +49,7 @@ Flags:
   -memprofile string
         write memory profile to this file
   -rulefile value
-        path to a file contains a list of rules.
+        path to a file contains a list of rules
   -source
         no effect (deprecated)
   -tags string

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"go/types"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
+	"github.com/timonwong/loggercheck/internal/sets"
 )
 
 var ErrInvalidRule = errors.New("invalid rule format")
@@ -17,17 +17,11 @@ var ErrInvalidRule = errors.New("invalid rule format")
 type RulesetList []Ruleset
 
 func (rl RulesetList) Names() []string {
-	keys := make([]string, len(rl))
-	visited := make(map[string]struct{})
-	for i, pg := range rl {
-		if _, ok := visited[pg.Name]; ok {
-			continue
-		}
-		visited[pg.Name] = struct{}{}
-		keys[i] = pg.Name
+	names := make([]string, 0, len(rl))
+	for _, rs := range rl {
+		names = append(names, rs.Name)
 	}
-	sort.Strings(keys)
-	return keys
+	return sets.NewString(names...).List()
 }
 
 type Ruleset struct {
