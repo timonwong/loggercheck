@@ -16,15 +16,6 @@ var ErrInvalidRule = errors.New("invalid rule format")
 
 type RulesetList []Ruleset
 
-func (rl RulesetList) HasName(name string) bool {
-	for _, rs := range rl {
-		if rs.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
 func (rl RulesetList) Names() []string {
 	keys := make([]string, len(rl))
 	visited := make(map[string]struct{})

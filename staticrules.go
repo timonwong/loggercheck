@@ -3,7 +3,7 @@ package loggercheck
 import (
 	"fmt"
 
-	"github.com/timonwong/loggercheck/rules"
+	"github.com/timonwong/loggercheck/internal/rules"
 )
 
 var staticRuleList = rules.RulesetList{

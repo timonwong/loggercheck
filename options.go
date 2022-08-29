@@ -1,9 +1,19 @@
 package loggercheck
 
+import (
+	"github.com/timonwong/loggercheck/internal/sets"
+)
+
 type Option func(*loggercheck)
 
-func WithConfig(cfg *Config) Option {
+func WithDisable(disable []string) Option {
 	return func(l *loggercheck) {
-		l.cfg = cfg
+		l.disable = sets.NewString(disable...)
+	}
+}
+
+func WithRules(customRules []string) Option {
+	return func(l *loggercheck) {
+		l.customRules = customRules
 	}
 }
