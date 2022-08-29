@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/timonwong/loggercheck/pattern"
+	"github.com/timonwong/loggercheck/rules"
 	"github.com/timonwong/loggercheck/sets"
 )
 
@@ -38,7 +38,7 @@ func (f *loggerCheckersFlag) String() string {
 
 func validateIgnoredLoggerFlag(set sets.StringSet) error {
 	for key := range set {
-		if !staticPatternGroups.HasName(key) {
+		if !staticRuleList.HasName(key) {
 			return fmt.Errorf("unknown logger: %q", key)
 		}
 	}
@@ -47,8 +47,8 @@ func validateIgnoredLoggerFlag(set sets.StringSet) error {
 }
 
 type ruleFileFlag struct {
-	filename      string
-	patternGroups pattern.GroupList
+	filename   string
+	rulsetList rules.RulesetList
 }
 
 // Set implements flag.Value interface.
@@ -59,13 +59,13 @@ func (f *ruleFileFlag) Set(filename string) error {
 	}
 	defer r.Close()
 
-	pgList, err := pattern.ParseRuleFile(r)
+	pgList, err := rules.ParseRuleFile(r)
 	if err != nil {
 		return err
 	}
 
 	f.filename = filename
-	f.patternGroups = pgList
+	f.rulsetList = pgList
 	return nil
 }
 

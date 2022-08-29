@@ -29,9 +29,9 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	checkerKeys := strings.Join(staticPatternGroups.Names(), ",")
+	checkerKeys := strings.Join(staticRuleList.Names(), ",")
 	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.Var(&l.ruleFile, "rulefile", "path to a file contains a list of pattern rules.")
+	a.Flags.Var(&l.ruleFile, "rulefile", "path to a file contains a list of rules.")
 	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s).", checkerKeys))
 	return a
 }
@@ -53,8 +53,8 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		return false
 	}
 
-	for i := range staticPatternGroups {
-		pg := &staticPatternGroups[i]
+	for i := range staticRuleList {
+		pg := &staticRuleList[i]
 		if l.isCheckerDisabled(pg.Name) {
 			// Skip ignored logger checker.
 			continue
@@ -65,9 +65,9 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		}
 	}
 
-	customPatternGroups := l.ruleFile.patternGroups
-	for i := range customPatternGroups {
-		pg := &customPatternGroups[i]
+	customRulesetList := l.ruleFile.rulsetList
+	for i := range customRulesetList {
+		pg := &customRulesetList[i]
 		if pg.Match(fn, pkg) {
 			return true
 		}

@@ -3,16 +3,16 @@ package loggercheck
 import (
 	"fmt"
 
-	"github.com/timonwong/loggercheck/pattern"
+	"github.com/timonwong/loggercheck/rules"
 )
 
-var staticPatternGroups = pattern.GroupList{
-	mustNewPatternGroup("logr", []string{
+var staticRuleList = rules.RulesetList{
+	mustNewStaticRuleSet("logr", []string{
 		"(github.com/go-logr/logr.Logger).Error",
 		"(github.com/go-logr/logr.Logger).Info",
 		"(github.com/go-logr/logr.Logger).WithValues",
 	}),
-	mustNewPatternGroup("klog", []string{
+	mustNewStaticRuleSet("klog", []string{
 		"k8s.io/klog/v2.InfoS",
 		"k8s.io/klog/v2.InfoSDepth",
 		"k8s.io/klog/v2.ErrorS",
@@ -20,7 +20,7 @@ var staticPatternGroups = pattern.GroupList{
 		"(k8s.io/klog/v2.Verbose).InfoSDepth",
 		"(k8s.io/klog/v2.Verbose).ErrorS",
 	}),
-	mustNewPatternGroup("zap", []string{
+	mustNewStaticRuleSet("zap", []string{
 		"(*go.uber.org/zap.SugaredLogger).With",
 		"(*go.uber.org/zap.SugaredLogger).Debugw",
 		"(*go.uber.org/zap.SugaredLogger).Infow",
@@ -32,31 +32,23 @@ var staticPatternGroups = pattern.GroupList{
 	}),
 }
 
-// mustNewPatternGroup only called at init, catch errors during development.
+// mustNewStaticRuleSet only called at init, catch errors during development.
 // In production it will not panic.
-func mustNewPatternGroup(name string, patternLines []string) pattern.Group {
-	if len(patternLines) == 0 {
-		panic("empty pattern lines")
+func mustNewStaticRuleSet(name string, lines []string) rules.Ruleset {
+	if len(lines) == 0 {
+		panic("empty rule lines")
 	}
 
-	var packageImport string
-	patterns := make([]pattern.Pattern, 0, len(patternLines))
-	for _, s := range patternLines {
-		pat, err := pattern.ParseRule(s)
-		if err != nil {
-			panic(err)
-		}
-		patterns = append(patterns, pat)
-		if packageImport == "" {
-			packageImport = pat.PackageImport
-		} else if packageImport != pat.PackageImport {
-			panic(fmt.Sprintf("package import mismatch: %s != %s", packageImport, pat.PackageImport))
-		}
+	rulesetList, err := rules.ParseRules(lines)
+	if err != nil {
+		panic(err)
 	}
 
-	return pattern.Group{
-		Name:          name,
-		PackageImport: packageImport,
-		Patterns:      patterns,
+	if len(rulesetList) != 1 {
+		panic(fmt.Errorf("expected 1 ruleset, got %d", len(rulesetList)))
 	}
+
+	ruleset := rulesetList[0]
+	ruleset.Name = name
+	return ruleset
 }

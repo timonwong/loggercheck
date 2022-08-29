@@ -1,13 +1,13 @@
 package loggercheck
 
 import (
-	"github.com/timonwong/loggercheck/pattern"
+	"github.com/timonwong/loggercheck/rules"
 	"github.com/timonwong/loggercheck/sets"
 )
 
 type Config struct {
-	Disable       sets.StringSet
-	PatternGroups pattern.GroupList
+	Disable     sets.StringSet
+	RulesetList rules.RulesetList
 }
 
 func (c *Config) init(l *loggercheck) {
@@ -18,5 +18,5 @@ func (c *Config) init(l *loggercheck) {
 	// Init configs from external API call (golangci-lint for example).
 	l.disable.StringSet = c.Disable
 	l.ruleFile.filename = "<internal>"
-	l.ruleFile.patternGroups = c.PatternGroups
+	l.ruleFile.rulsetList = c.RulesetList
 }

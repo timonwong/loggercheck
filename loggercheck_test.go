@@ -8,7 +8,7 @@ import (
 	"golang.org/x/tools/go/analysis/analysistest"
 
 	"github.com/timonwong/loggercheck"
-	"github.com/timonwong/loggercheck/pattern"
+	"github.com/timonwong/loggercheck/rules"
 	"github.com/timonwong/loggercheck/sets"
 )
 
@@ -53,7 +53,7 @@ func TestLinter(t *testing.T) {
 func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
-	pgs, err := pattern.ParseRules([]string{
+	pgs, err := rules.ParseRules([]string{
 		"(*a/customonly.Logger).Debugw",
 		"(*a/customonly.Logger).Infow",
 		"(*a/customonly.Logger).Warnw",
@@ -67,8 +67,8 @@ func TestOptions(t *testing.T) {
 	})
 	require.NoError(t, err)
 	customLogger := loggercheck.WithConfig(&loggercheck.Config{
-		Disable:       sets.NewStringSet("klog", "logr", "zap"),
-		PatternGroups: pgs,
+		Disable:     sets.NewStringSet("klog", "logr", "zap"),
+		RulesetList: pgs,
 	})
 
 	testCases := []struct {
