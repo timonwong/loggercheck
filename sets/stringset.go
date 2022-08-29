@@ -1,27 +1,29 @@
-package loggercheck
+package sets
 
 import "sort"
 
-type stringSet map[string]struct{}
+type Empty struct{}
 
-func newStringSet(items ...string) stringSet {
-	s := make(stringSet)
+type StringSet map[string]Empty
+
+func NewStringSet(items ...string) StringSet {
+	s := make(StringSet)
 	s.Insert(items...)
 	return s
 }
 
-func (s stringSet) Insert(items ...string) {
+func (s StringSet) Insert(items ...string) {
 	for _, item := range items {
-		s[item] = struct{}{}
+		s[item] = Empty{}
 	}
 }
 
-func (s stringSet) Has(item string) bool {
+func (s StringSet) Has(item string) bool {
 	_, contained := s[item]
 	return contained
 }
 
-func (s stringSet) List() []string {
+func (s StringSet) List() []string {
 	if len(s) == 0 {
 		return nil
 	}
