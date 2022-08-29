@@ -13,8 +13,7 @@ var AnalyzerPlugin analyzerPlugin
 type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
-	a := loggercheck.NewAnalyzer()
 	return []*analysis.Analyzer{
-		a,
+		loggercheck.NewAnalyzer(),
 	}
 }
