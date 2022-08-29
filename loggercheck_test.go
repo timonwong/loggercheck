@@ -84,7 +84,7 @@ func TestLinter(t *testing.T) {
 func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
-	rules := []string{
+	customRules := []string{
 		"(*a/customonly.Logger).Debugw",
 		"(*a/customonly.Logger).Infow",
 		"(*a/customonly.Logger).Warnw",
@@ -105,14 +105,14 @@ func TestOptions(t *testing.T) {
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
 				loggercheck.WithDisable([]string{"klog", "logr", "zap"}),
-				loggercheck.WithRules(rules),
+				loggercheck.WithRules(customRules),
 			},
 		},
 		{
 			name: "ignore-logr",
 			options: []loggercheck.Option{
 				loggercheck.WithDisable([]string{"logr"}),
-				loggercheck.WithRules(rules),
+				loggercheck.WithRules(customRules),
 			},
 		},
 	}
