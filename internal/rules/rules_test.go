@@ -50,7 +50,7 @@ func TestParseFuncRule(t *testing.T) {
 			wantRule: FuncRule{
 				IsReceiver:   true,
 				ReceiverType: "*SugaredLogger",
-				MethodName:   "Debugw",
+				FuncName:     "Debugw",
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func TestParseFuncRule(t *testing.T) {
 			rule:              "k8s.io/klog/v2.InfoS",
 			wantPackageImport: "k8s.io/klog/v2",
 			wantRule: FuncRule{
-				MethodName: "InfoS",
+				FuncName: "InfoS",
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func TestParseFuncRule(t *testing.T) {
 			wantRule: FuncRule{
 				IsReceiver:   true,
 				ReceiverType: "Logger",
-				MethodName:   "Error",
+				FuncName:     "Error",
 			},
 		},
 	}

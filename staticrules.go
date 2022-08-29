@@ -1,6 +1,7 @@
 package loggercheck
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/timonwong/loggercheck/internal/rules"
@@ -36,7 +37,7 @@ var staticRuleList = rules.RulesetList{
 // In production it will not panic.
 func mustNewStaticRuleSet(name string, lines []string) rules.Ruleset {
 	if len(lines) == 0 {
-		panic("empty rule lines")
+		panic(errors.New("no rules provided"))
 	}
 
 	rulesetList, err := rules.ParseRules(lines)

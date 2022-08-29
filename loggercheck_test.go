@@ -12,13 +12,11 @@ import (
 	"github.com/timonwong/loggercheck/internal/rules"
 )
 
-type tracingTestingErrorf struct {
+type dummyTestingErrorf struct {
 	*testing.T
 }
 
-func (t tracingTestingErrorf) Errorf(format string, args ...interface{}) {
-	t.Logf(format, args...)
-}
+func (t dummyTestingErrorf) Errorf(format string, args ...interface{}) {}
 
 func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
@@ -67,7 +65,7 @@ func TestLinter(t *testing.T) {
 
 			var result []*analysistest.Result
 			if tc.wantError != nil {
-				result = analysistest.Run(&tracingTestingErrorf{t}, testdata, a, tc.patterns)
+				result = analysistest.Run(&dummyTestingErrorf{t}, testdata, a, tc.patterns)
 			} else {
 				result = analysistest.Run(t, testdata, a, tc.patterns)
 			}
