@@ -19,6 +19,10 @@ func (l *Logger) With(keysAndValues ...interface{}) *Logger {
 	}
 }
 
+func (l *Logger) XXXDebugw(msg string, keysAndValues ...interface{}) {
+	l.s.Debugw(msg, keysAndValues...)
+}
+
 func (l *Logger) Debugw(msg string, keysAndValues ...interface{}) {
 	l.s.Debugw(msg, keysAndValues...)
 }

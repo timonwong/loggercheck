@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
-	"github.com/timonwong/loggercheck/internal/sets"
 )
 
 var ErrInvalidRule = errors.New("invalid rule format")
@@ -36,7 +35,7 @@ type Ruleset struct {
 	PackageImport string
 	Rules         []FuncRule
 
-	funcNames sets.StringSet
+	ruleIndicesByFuncName map[string][]int
 }
 
 func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
@@ -47,13 +46,14 @@ func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
 
 	sig := fn.Type().(*types.Signature) // it's safe since we already checked
 
-	// Fail fast if func name not contains in index
-	if !rs.funcNames.Has(fn.Name()) {
+	// Fail fast if the function name is not in the rule list.
+	indices, ok := rs.ruleIndicesByFuncName[fn.Name()]
+	if !ok {
 		return false
 	}
 
-	for i := range rs.Rules {
-		rule := &rs.Rules[i]
+	for _, idx := range indices {
+		rule := &rs.Rules[idx]
 		if matchRule(rule, sig) {
 			return true
 		}
@@ -65,7 +65,7 @@ func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
 func emptyQualifier(*types.Package) string { return "" }
 
 func matchRule(p *FuncRule, sig *types.Signature) bool {
-	// we do not check package import and func name here since it's already checked in Match()
+	// we do not check package import here since it's already checked in Match()
 	recv := sig.Recv()
 	isReceiver := recv != nil
 	if isReceiver != p.IsReceiver {
@@ -153,16 +153,17 @@ func ParseRules(lines []string) (result RulesetList, err error) {
 	}
 
 	for packageImport, rules := range rulesByImport {
-		funcNames := make([]string, 0, len(rules))
-		for _, rule := range rules {
-			funcNames = append(funcNames, rule.FuncName)
+		ruleIndicesByFuncName := make(map[string][]int, len(rules))
+		for idx, rule := range rules {
+			fnName := rule.FuncName
+			ruleIndicesByFuncName[fnName] = append(ruleIndicesByFuncName[fnName], idx)
 		}
 
 		result = append(result, Ruleset{
-			Name:          "", // NOTE(timonwong) Always "" for custom rule
-			PackageImport: packageImport,
-			Rules:         rules,
-			funcNames:     sets.NewString(funcNames...),
+			Name:                  "", // NOTE(timonwong) Always "" for custom rule
+			PackageImport:         packageImport,
+			Rules:                 rules,
+			ruleIndicesByFuncName: ruleIndicesByFuncName,
 		})
 	}
 	return result, nil

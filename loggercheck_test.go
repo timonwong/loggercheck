@@ -88,6 +88,9 @@ func TestOptions(t *testing.T) {
 		"(*a/customonly.Logger).Warnw",
 		"(*a/customonly.Logger).Errorw",
 		"(*a/customonly.Logger).With",
+
+		"(a/customonly.Logger).XXXDebugw",
+
 		"a/customonly.Debugw",
 		"a/customonly.Infow",
 		"a/customonly.Warnw",
