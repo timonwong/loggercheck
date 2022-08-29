@@ -7,5 +7,9 @@ import (
 )
 
 func main() {
-	singlechecker.Main(loggercheck.NewAnalyzer())
+	a, err := loggercheck.NewAnalyzer()
+	if err != nil {
+		panic(err)
+	}
+	singlechecker.Main(a)
 }

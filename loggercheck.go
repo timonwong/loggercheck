@@ -15,13 +15,14 @@ import (
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
-func NewAnalyzer(opts ...Option) *analysis.Analyzer {
+func NewAnalyzer(opts ...Option) (*analysis.Analyzer, error) {
 	l := &loggercheck{}
 	for _, o := range opts {
-		o(l)
+		if err := o(l); err != nil {
+			return nil, err
+		}
 	}
 
-	l.cfg.init(l)
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,
@@ -33,14 +34,12 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	a.Flags.Init("loggercheck", flag.ExitOnError)
 	a.Flags.Var(&l.ruleFile, "rulefile", "path to a file contains a list of rules.")
 	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s).", checkerKeys))
-	return a
+	return a, nil
 }
 
 type loggercheck struct {
 	disable  loggerCheckersFlag // flag -disable
 	ruleFile ruleFileFlag       // flag -rulefile
-
-	cfg *Config // used for external integration, for example golangci-lint
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {

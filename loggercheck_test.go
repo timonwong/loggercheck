@@ -40,7 +40,7 @@ func TestLinter(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a := loggercheck.NewAnalyzer()
+			a, _ := loggercheck.NewAnalyzer()
 			err := a.Flags.Parse(tc.flags)
 			require.NoError(t, err)
 			analysistest.Run(t, testdata, a, tc.patterns)
@@ -71,19 +71,15 @@ func TestOptions(t *testing.T) {
 		{
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
-				loggercheck.WithConfig(&loggercheck.Config{
-					Disable: []string{"klog", "logr", "zap"},
-					Rules:   rules,
-				}),
+				loggercheck.WithDisable([]string{"klog", "logr", "zap"}),
+				loggercheck.WithRules(rules),
 			},
 		},
 		{
 			name: "ignore-logr",
 			options: []loggercheck.Option{
-				loggercheck.WithConfig(&loggercheck.Config{
-					Disable: []string{"logr"},
-					Rules:   rules,
-				}),
+				loggercheck.WithDisable([]string{"logr"}),
+				loggercheck.WithRules(rules),
 			},
 		},
 	}
@@ -91,7 +87,8 @@ func TestOptions(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a := loggercheck.NewAnalyzer(tc.options...)
+			a, err := loggercheck.NewAnalyzer(tc.options...)
+			require.NoError(t, err)
 			analysistest.Run(t, testdata, a, "a/customonly")
 		})
 	}
