@@ -7,32 +7,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseMethodRule(t *testing.T) {
+func TestParseFuncRule(t *testing.T) {
 	testCases := []struct {
 		name              string
-		methodRule        string
+		rule              string
 		wantError         error
 		wantPackageImport string
 		wantRule          MethodRule
 	}{
 		{
-			name:       "invalid-rule-missing-paren",
-			methodRule: "(*go.uber.org/zap/SugaredLogger.Debugw",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-missing-paren",
+			rule:      "(*go.uber.org/zap/SugaredLogger.Debugw",
+			wantError: ErrInvalidRule,
 		},
 		{
-			name:       "invalid-rule-receiver-no-type",
-			methodRule: "(*go.uber.org/zap/SugaredLogger).Debugw",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-receiver-no-type",
+			rule:      "(*go.uber.org/zap/SugaredLogger).Debugw",
+			wantError: ErrInvalidRule,
 		},
 		{
-			name:       "invalid-rule-just-import",
-			methodRule: "go.uber.org/zap",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-just-import",
+			rule:      "go.uber.org/zap",
+			wantError: ErrInvalidRule,
 		},
 		{
 			name:              "zap",
-			methodRule:        "(*go.uber.org/zap.SugaredLogger).Debugw",
+			rule:              "(*go.uber.org/zap.SugaredLogger).Debugw",
 			wantPackageImport: "go.uber.org/zap",
 			wantRule: MethodRule{
 				IsReceiver:   true,
@@ -42,7 +42,7 @@ func TestParseMethodRule(t *testing.T) {
 		},
 		{
 			name:              "klog-no-receiver",
-			methodRule:        "k8s.io/klog/v2.InfoS",
+			rule:              "k8s.io/klog/v2.InfoS",
 			wantPackageImport: "k8s.io/klog/v2",
 			wantRule: MethodRule{
 				MethodName: "InfoS",
@@ -50,7 +50,7 @@ func TestParseMethodRule(t *testing.T) {
 		},
 		{
 			name:              "logr",
-			methodRule:        "(github.com/go-logr/logr.Logger).Error",
+			rule:              "(github.com/go-logr/logr.Logger).Error",
 			wantPackageImport: "github.com/go-logr/logr",
 			wantRule: MethodRule{
 				IsReceiver:   true,
@@ -65,7 +65,7 @@ func TestParseMethodRule(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotPackageImport, gotRule, err := ParseMethodRule(tc.methodRule)
+			gotPackageImport, gotRule, err := ParseMethodRule(tc.rule)
 			if tc.wantError != nil {
 				assert.EqualError(t, err, tc.wantError.Error())
 			} else {

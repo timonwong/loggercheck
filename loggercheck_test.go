@@ -40,7 +40,7 @@ func TestLinter(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a, _ := loggercheck.NewAnalyzer()
+			a := loggercheck.NewAnalyzer()
 			err := a.Flags.Parse(tc.flags)
 			require.NoError(t, err)
 			analysistest.Run(t, testdata, a, tc.patterns)
@@ -87,8 +87,7 @@ func TestOptions(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			a, err := loggercheck.NewAnalyzer(tc.options...)
-			require.NoError(t, err)
+			a := loggercheck.NewAnalyzer(tc.options...)
 			analysistest.Run(t, testdata, a, "a/customonly")
 		})
 	}

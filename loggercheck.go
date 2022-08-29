@@ -5,22 +5,26 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"os"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
+
+	"github.com/timonwong/loggercheck/internal/rules"
+	"github.com/timonwong/loggercheck/internal/sets"
 )
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
-func NewAnalyzer(opts ...Option) (*analysis.Analyzer, error) {
-	l := &loggercheck{}
+func NewAnalyzer(opts ...Option) *analysis.Analyzer {
+	l := &loggercheck{
+		disable: sets.NewString(),
+	}
 	for _, o := range opts {
-		if err := o(l); err != nil {
-			return nil, err
-		}
+		o(l)
 	}
 
 	a := &analysis.Analyzer{
@@ -32,14 +36,17 @@ func NewAnalyzer(opts ...Option) (*analysis.Analyzer, error) {
 
 	checkerKeys := strings.Join(staticRuleList.Names(), ",")
 	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.Var(&l.ruleFile, "rulefile", "path to a file contains a list of rules.")
+	a.Flags.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules.")
 	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s).", checkerKeys))
-	return a, nil
+	return a
 }
 
 type loggercheck struct {
-	disable  loggerCheckersFlag // flag -disable
-	ruleFile ruleFileFlag       // flag -rulefile
+	disable  sets.StringSet // flag -disable
+	ruleFile string         // flag -rulefile
+
+	customRules       []string          // used for external integration, for example golangci-lint
+	customRulesetList rules.RulesetList // populate at runtime
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
@@ -64,7 +71,7 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		}
 	}
 
-	customRulesetList := l.ruleFile.rulsetList
+	customRulesetList := l.customRulesetList
 	for i := range customRulesetList {
 		pg := &customRulesetList[i]
 		if pg.Match(fn, pkg) {
@@ -118,7 +125,36 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 	}
 }
 
+func (l *loggercheck) processConfig() error {
+	if l.ruleFile != "" {
+		f, err := os.Open(l.ruleFile)
+		if err != nil {
+			return fmt.Errorf("failed to open rule file: %w", err)
+		}
+		defer f.Close()
+
+		rulesetList, err := rules.ParseRuleFile(f)
+		if err != nil {
+			return fmt.Errorf("failed to parse rule file: %w", err)
+		}
+		l.customRulesetList = rulesetList
+	} else if len(l.customRules) > 0 {
+		rulesetList, err := rules.ParseRules(l.customRules)
+		if err != nil {
+			return fmt.Errorf("failed to parse rules: %w", err)
+		}
+		l.customRulesetList = rulesetList
+	}
+
+	return nil
+}
+
 func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
+	err := l.processConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 	nodeFilter := []ast.Node{
 		(*ast.CallExpr)(nil),

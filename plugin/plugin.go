@@ -13,10 +13,7 @@ var AnalyzerPlugin analyzerPlugin
 type analyzerPlugin struct{}
 
 func (analyzerPlugin) GetAnalyzers() []*analysis.Analyzer {
-	a, err := loggercheck.NewAnalyzer()
-	if err != nil {
-		panic(err)
-	}
+	a := loggercheck.NewAnalyzer()
 	return []*analysis.Analyzer{
 		a,
 	}
