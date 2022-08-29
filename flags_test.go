@@ -6,30 +6,60 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestIgnoredLoggerFlag(t *testing.T) {
-	f := loggerCheckersFlag{}
+func TestLoggerCheckersFlag(t *testing.T) {
+	testCases := []struct {
+		name      string
+		flagValue string
+		wantError string
+		want      []string
+	}{
+		{
+			name:      "empty",
+			flagValue: "",
+			want:      nil,
+		},
+		{
+			name:      "klog",
+			flagValue: "klog",
+			want:      []string{"klog"},
+		},
+		{
+			name:      "klog-and-logr",
+			flagValue: "logr,klog",
+			want:      []string{"klog", "logr"},
+		},
+		{
+			name:      "invalid-logger",
+			flagValue: "klog,logr,xxx",
+			wantError: "-ignoredloggers: unknown logger: \"xxx\"",
+		},
+	}
 
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	fs.Var(&f, "ignoredloggers", "")
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	var err error
+			f := loggerCheckersFlag{}
+			fs := flag.NewFlagSet("test", flag.ContinueOnError)
+			fs.SetOutput(io.Discard)
+			fs.Var(&f, "ignoredloggers", "")
 
-	err = fs.Parse([]string{"-ignoredloggers=klog"})
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"klog"}, f.List())
-
-	err = fs.Parse([]string{"-ignoredloggers=logr,klog"})
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"klog", "logr"}, f.List())
-
-	err = fs.Parse([]string{"-ignoredloggers=logr,klog,unknownlogger"})
-	assert.ErrorContains(t, err, "-ignoredloggers: unknown logger: \"unknownlogger\"")
+			err := fs.Parse([]string{"-ignoredloggers=" + tc.flagValue})
+			if tc.wantError != "" {
+				assert.ErrorContains(t, err, tc.wantError)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, f.List())
+			}
+		})
+	}
 }
 
-func TestNoRuleFile(t *testing.T) {
+func TestRuleFileFlag_NoRuleFile(t *testing.T) {
 	f := ruleFileFlag{}
 
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
@@ -40,7 +70,7 @@ func TestNoRuleFile(t *testing.T) {
 	assert.ErrorContains(t, err, "open testdata/xxx-not-exists-xxx.txt: no such file or directory")
 }
 
-func TestWrongRuleFile(t *testing.T) {
+func TestRuleFileFlag_WrongRuleFile(t *testing.T) {
 	f := ruleFileFlag{}
 
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)

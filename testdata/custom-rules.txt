@@ -5,6 +5,7 @@
 (*a/customonly.Logger).Warnw
 (*a/customonly.Logger).Errorw
 (*a/customonly.Logger).With
+
 # Exported package level functions
 a/customonly.Debugw
 a/customonly.Infow

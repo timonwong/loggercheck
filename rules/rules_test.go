@@ -1,40 +1,53 @@
 package rules
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseMethodRule(t *testing.T) {
+type brokenIOReader struct{}
+
+func (*brokenIOReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("broken IO")
+}
+
+func TestParseRuleFile_IOError(t *testing.T) {
+	r := &brokenIOReader{}
+	_, err := ParseRuleFile(r)
+	assert.EqualError(t, err, "broken IO")
+}
+
+func TestParseFuncRule(t *testing.T) {
 	testCases := []struct {
 		name              string
-		methodRule        string
+		rule              string
 		wantError         error
 		wantPackageImport string
-		wantRule          MethodRule
+		wantRule          FuncRule
 	}{
 		{
-			name:       "invalid-rule-missing-paren",
-			methodRule: "(*go.uber.org/zap/SugaredLogger.Debugw",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-missing-paren",
+			rule:      "(*go.uber.org/zap/SugaredLogger.Debugw",
+			wantError: ErrInvalidRule,
 		},
 		{
-			name:       "invalid-rule-receiver-no-type",
-			methodRule: "(*go.uber.org/zap/SugaredLogger).Debugw",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-receiver-no-type",
+			rule:      "(*go.uber.org/zap/SugaredLogger).Debugw",
+			wantError: ErrInvalidRule,
 		},
 		{
-			name:       "invalid-rule-just-import",
-			methodRule: "go.uber.org/zap",
-			wantError:  ErrInvalidRule,
+			name:      "invalid-rule-just-import",
+			rule:      "go.uber.org/zap",
+			wantError: ErrInvalidRule,
 		},
 		{
 			name:              "zap",
-			methodRule:        "(*go.uber.org/zap.SugaredLogger).Debugw",
+			rule:              "(*go.uber.org/zap.SugaredLogger).Debugw",
 			wantPackageImport: "go.uber.org/zap",
-			wantRule: MethodRule{
+			wantRule: FuncRule{
 				IsReceiver:   true,
 				ReceiverType: "*SugaredLogger",
 				MethodName:   "Debugw",
@@ -42,17 +55,17 @@ func TestParseMethodRule(t *testing.T) {
 		},
 		{
 			name:              "klog-no-receiver",
-			methodRule:        "k8s.io/klog/v2.InfoS",
+			rule:              "k8s.io/klog/v2.InfoS",
 			wantPackageImport: "k8s.io/klog/v2",
-			wantRule: MethodRule{
+			wantRule: FuncRule{
 				MethodName: "InfoS",
 			},
 		},
 		{
 			name:              "logr",
-			methodRule:        "(github.com/go-logr/logr.Logger).Error",
+			rule:              "(github.com/go-logr/logr.Logger).Error",
 			wantPackageImport: "github.com/go-logr/logr",
-			wantRule: MethodRule{
+			wantRule: FuncRule{
 				IsReceiver:   true,
 				ReceiverType: "Logger",
 				MethodName:   "Error",
@@ -65,7 +78,7 @@ func TestParseMethodRule(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotPackageImport, gotRule, err := ParseMethodRule(tc.methodRule)
+			gotPackageImport, gotRule, err := ParseFuncRule(tc.rule)
 			if tc.wantError != nil {
 				assert.EqualError(t, err, tc.wantError.Error())
 			} else {

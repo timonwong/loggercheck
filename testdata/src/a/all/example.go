@@ -10,6 +10,14 @@ import (
 	"k8s.io/klog/v2"
 )
 
+func ExampleInvalid() {
+	// function pointer is not supported
+
+	log := logr.Discard()
+	logFn := log.Info
+	logFn("message", "key1") // cannot be detected
+}
+
 func ExampleLogr() {
 	err := fmt.Errorf("error")
 
