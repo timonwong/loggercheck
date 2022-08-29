@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"os"
 
@@ -36,12 +37,14 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	a.Flags.Init("loggercheck", flag.ExitOnError)
 	a.Flags.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
 	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
+	a.Flags.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be of type string")
 	return a
 }
 
 type loggercheck struct {
-	disable  sets.StringSet // flag -disable
-	ruleFile string         // flag -rulefile
+	disable          sets.StringSet // flag -disable
+	ruleFile         string         // flag -rulefile
+	requireStringKey bool           // flag -stringkeys
 
 	rules       []string        // used for external integration, for example golangci-lint
 	rulesetList []rules.Ruleset // populate at runtime
@@ -66,6 +69,24 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 
 		if rs.Match(fn, pkg) {
 			return true
+		}
+	}
+
+	return false
+}
+
+func isArgTypeOfString(pass *analysis.Pass, arg ast.Expr) bool {
+	switch arg := arg.(type) {
+	case *ast.BasicLit: // literals, must be string
+		if arg.Kind == token.STRING {
+			return true
+		}
+	default:
+		typ := pass.TypesInfo.Types[arg].Type
+		if typ, ok := typ.(*types.Basic); ok {
+			if typ.Kind() == types.String {
+				return true
+			}
 		}
 	}
 
@@ -102,6 +123,7 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 
 	startIndex := nparams - 1
 	nargs := len(call.Args)
+
 	variadicLen := nargs - startIndex
 	if variadicLen%2 != 0 {
 		firstArg := call.Args[startIndex]
@@ -112,6 +134,23 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 			Category: "logging",
 			Message:  "odd number of arguments passed as key-value pairs for logging",
 		})
+	}
+
+	// Check the "key" type
+	if l.requireStringKey {
+		for i := startIndex; i < nargs; i += 2 {
+			arg := call.Args[i]
+			if isArgTypeOfString(pass, arg) {
+				continue
+			}
+
+			pass.Report(analysis.Diagnostic{
+				Pos:      arg.Pos(),
+				End:      arg.End(),
+				Category: "logging",
+				Message:  "logging keys must be of type string",
+			})
+		}
 	}
 }
 

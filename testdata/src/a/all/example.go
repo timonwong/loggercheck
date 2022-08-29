@@ -34,7 +34,7 @@ func ExampleLogr() {
 	log3 := logr.FromContextOrDiscard(context.TODO())
 	log3.Error(err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
 	args := []interface{}{"abc"}
-	log3.Error(err, "message", args...)
+	log3.Error(err, "message", args...) // not supported
 }
 
 func ExampleKlog() {

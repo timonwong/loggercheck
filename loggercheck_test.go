@@ -32,6 +32,11 @@ func TestLinter(t *testing.T) {
 			patterns: "a/all",
 		},
 		{
+			name:     "requirestringkey",
+			patterns: "a/requirestringkey",
+			flags:    []string{"-requirestringkey"},
+		},
+		{
 			name:     "klogonly",
 			patterns: "a/klogonly",
 			flags:    []string{"-disable=logr,zap"},
