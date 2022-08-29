@@ -14,6 +14,6 @@ func WithDisable(disable []string) Option {
 
 func WithRules(customRules []string) Option {
 	return func(l *loggercheck) {
-		l.customRules = customRules
+		l.rules = customRules
 	}
 }

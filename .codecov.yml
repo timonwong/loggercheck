@@ -4,12 +4,12 @@ coverage:
     patch:
       # coverage status for pull request diff
       default:
-        threshold: 0.5%  # allow a little drop
+        threshold: 1%  # allow a little drop
     project:
       # coverage status for whole project
       default:
         target: auto    # use coverage of base commit as target
-        threshold: 0.5%   # allow a little drop
+        threshold: 1%   # allow a little drop
 
 ignore:
   - "plugin/**"

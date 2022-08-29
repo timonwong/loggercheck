@@ -6,7 +6,7 @@ import (
 )
 
 var pool = sync.Pool{
-	New: func() any {
+	New: func() interface{} {
 		return new(bytes.Buffer)
 	},
 }

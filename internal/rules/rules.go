@@ -9,20 +9,11 @@ import (
 	"strings"
 
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
-	"github.com/timonwong/loggercheck/internal/sets"
 )
 
 var ErrInvalidRule = errors.New("invalid rule format")
 
-type RulesetList []Ruleset
-
-func (rl RulesetList) Names() []string {
-	names := make([]string, 0, len(rl))
-	for _, rs := range rl {
-		names = append(names, rs.Name)
-	}
-	return sets.NewString(names...).List()
-}
+const CustomRulesetName = "custom"
 
 type Ruleset struct {
 	Name          string
@@ -128,7 +119,7 @@ func ParseFuncRule(rule string) (packageImport string, pat FuncRule, err error) 
 	return packageImport, pat, nil
 }
 
-func ParseRules(lines []string) (result RulesetList, err error) {
+func ParseRules(lines []string) (result []Ruleset, err error) {
 	rulesByImport := make(map[string][]FuncRule)
 	for i, line := range lines {
 		if line == "" {
@@ -154,7 +145,7 @@ func ParseRules(lines []string) (result RulesetList, err error) {
 		}
 
 		result = append(result, Ruleset{
-			Name:                  "", // NOTE(timonwong) Always "" for custom rule
+			Name:                  CustomRulesetName, // NOTE(timonwong) Always "custom" for custom rule
 			PackageImport:         packageImport,
 			Rules:                 rules,
 			ruleIndicesByFuncName: ruleIndicesByFuncName,
@@ -163,7 +154,7 @@ func ParseRules(lines []string) (result RulesetList, err error) {
 	return result, nil
 }
 
-func ParseRuleFile(r io.Reader) (result RulesetList, err error) {
+func ParseRuleFile(r io.Reader) (result []Ruleset, err error) {
 	// Rule files are relatively small, so read it into string slice first.
 	var lines []string
 
