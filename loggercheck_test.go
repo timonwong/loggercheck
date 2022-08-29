@@ -8,8 +8,6 @@ import (
 	"golang.org/x/tools/go/analysis/analysistest"
 
 	"github.com/timonwong/loggercheck"
-	"github.com/timonwong/loggercheck/rules"
-	"github.com/timonwong/loggercheck/sets"
 )
 
 func TestLinter(t *testing.T) {
@@ -53,7 +51,7 @@ func TestLinter(t *testing.T) {
 func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
-	pgs, err := rules.ParseRules([]string{
+	rules := []string{
 		"(*a/customonly.Logger).Debugw",
 		"(*a/customonly.Logger).Infow",
 		"(*a/customonly.Logger).Warnw",
@@ -64,12 +62,7 @@ func TestOptions(t *testing.T) {
 		"a/customonly.Warnw",
 		"a/customonly.Errorw",
 		"a/customonly.With",
-	})
-	require.NoError(t, err)
-	customLogger := loggercheck.WithConfig(&loggercheck.Config{
-		Disable:     sets.NewStringSet("klog", "logr", "zap"),
-		RulesetList: pgs,
-	})
+	}
 
 	testCases := []struct {
 		name    string
@@ -78,13 +71,19 @@ func TestOptions(t *testing.T) {
 		{
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
-				customLogger,
+				loggercheck.WithConfig(&loggercheck.Config{
+					Disable: []string{"klog", "logr", "zap"},
+					Rules:   rules,
+				}),
 			},
 		},
 		{
 			name: "ignore-logr",
 			options: []loggercheck.Option{
-				customLogger,
+				loggercheck.WithConfig(&loggercheck.Config{
+					Disable: []string{"logr"},
+					Rules:   rules,
+				}),
 			},
 		},
 	}

@@ -6,17 +6,20 @@ import (
 )
 
 type Config struct {
-	Disable     sets.StringSet
-	RulesetList rules.RulesetList
+	Disable []string
+	Rules   []string
 }
 
 func (c *Config) init(l *loggercheck) {
 	if c == nil {
 		return
 	}
-
 	// Init configs from external API call (golangci-lint for example).
-	l.disable.StringSet = c.Disable
+	l.disable.StringSet = sets.NewStringSet(c.Disable...)
 	l.ruleFile.filename = "<internal>"
-	l.ruleFile.rulsetList = c.RulesetList
+	ruleset, err := rules.ParseRules(c.Rules)
+	if err != nil {
+		return
+	}
+	l.ruleFile.rulsetList = ruleset
 }
