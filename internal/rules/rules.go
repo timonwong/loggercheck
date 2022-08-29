@@ -33,7 +33,7 @@ func (rl RulesetList) Names() []string {
 type Ruleset struct {
 	Name          string
 	PackageImport string
-	Rules         []MethodRule
+	Rules         []FuncRule
 }
 
 func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
@@ -54,13 +54,13 @@ func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
 
 func emptyQualifier(*types.Package) string { return "" }
 
-type MethodRule struct { // package import should be accessed from Rulset
+type FuncRule struct { // package import should be accessed from Rulset
 	ReceiverType string
 	MethodName   string
 	IsReceiver   bool
 }
 
-func (p *MethodRule) match(fn *types.Func, sig *types.Signature) bool {
+func (p *FuncRule) match(fn *types.Func, sig *types.Signature) bool {
 	// we do not check package import here since it's already checked
 	if fn.Name() != p.MethodName {
 		return false
@@ -85,7 +85,7 @@ func (p *MethodRule) match(fn *types.Func, sig *types.Signature) bool {
 	return true
 }
 
-func ParseMethodRule(rule string) (packageImport string, pat MethodRule, err error) {
+func ParseFuncRule(rule string) (packageImport string, pat FuncRule, err error) {
 	lastDot := strings.LastIndexFunc(rule, func(r rune) bool {
 		return r == '.' || r == '/'
 	})
@@ -98,7 +98,7 @@ func ParseMethodRule(rule string) (packageImport string, pat MethodRule, err err
 
 	if strings.HasPrefix(rule, "(") { // package
 		if !strings.HasSuffix(importOrReceiver, ")") {
-			return "", MethodRule{}, ErrInvalidRule
+			return "", FuncRule{}, ErrInvalidRule
 		}
 
 		var isPointerReceiver bool
@@ -113,7 +113,7 @@ func ParseMethodRule(rule string) (packageImport string, pat MethodRule, err err
 			return r == '.' || r == '/'
 		})
 		if typeDotIdx == -1 || receiver[typeDotIdx] == '/' {
-			return "", MethodRule{}, ErrInvalidRule
+			return "", FuncRule{}, ErrInvalidRule
 		}
 		receiverType := receiver[typeDotIdx+1:]
 		if isPointerReceiver {
@@ -129,7 +129,7 @@ func ParseMethodRule(rule string) (packageImport string, pat MethodRule, err err
 }
 
 func ParseRules(lines []string) (result RulesetList, err error) {
-	rulesByImport := make(map[string][]MethodRule)
+	rulesByImport := make(map[string][]FuncRule)
 	for i, line := range lines {
 		if line == "" {
 			continue
@@ -139,7 +139,7 @@ func ParseRules(lines []string) (result RulesetList, err error) {
 			continue
 		}
 
-		packageImport, pat, err := ParseMethodRule(line)
+		packageImport, pat, err := ParseFuncRule(line)
 		if err != nil {
 			return nil, fmt.Errorf("error parse rule at line %d: %w", i+1, err)
 		}

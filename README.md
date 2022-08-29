@@ -1,9 +1,18 @@
 # loggercheck
 
+## Description
+
 A linter checks the odd number of key and value pairs for common logger libraries:
 - [logr](https://github.com/go-logr/logr)
 - [klog](https://github.com/kubernetes/klog)
 - [zap](https://github.com/uber-go/zap)
+
+## Badges
+
+![Build Status](https://github.com/timonwong/loggercheck/workflows/CI/badge.svg)
+[![Coverage](https://img.shields.io/codecov/c/github/timonwong/loggercheck?token=Nutf41gwoG)](https://app.codecov.io/gh/timonwong/loggercheck)
+[![License](https://img.shields.io/github/license/timonwong/loggercheck.svg)](/LICENSE)
+[![Release](https://img.shields.io/github/release/timonwong/loggercheck.svg)](https://github.com/timonwong/loggercheck/releases/latest)
 
 ## Install
 
