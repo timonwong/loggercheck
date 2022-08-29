@@ -20,11 +20,15 @@ func logrIgnored() {
 func ExampleKlog() {
 	err := fmt.Errorf("error")
 
+	klog.Infof("message: %s", "key1")
+
 	klog.InfoS("abc", "key1", "value1")
 	klog.InfoS("abc", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
 
 	klog.ErrorS(err, "abc", "key1", "value1")
 	klog.ErrorS(err, "abc", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
+
+	klog.V(1).Infof("message: %s", "key1")
 
 	klog.V(1).InfoS("message", "key1", "value1")
 	klog.V(1).InfoS("message", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`

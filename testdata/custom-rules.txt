@@ -6,6 +6,9 @@
 (*a/customonly.Logger).Errorw
 (*a/customonly.Logger).With
 
+# Test case for the wrong receiver type
+(a/customonly.Logger).XXXDebugw
+
 # Exported package level functions
 a/customonly.Debugw
 a/customonly.Infow

@@ -24,6 +24,9 @@ func ExampleCustomLogger() {
 	log := New()
 	defer log.Sync()
 
+	// won't bail because rules file wrong
+	log.XXXDebugw("message", "key1")
+
 	log.Infow("abc", "key1", "value1")
 	log.Infow("abc", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
 

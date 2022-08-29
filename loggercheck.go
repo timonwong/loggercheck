@@ -126,7 +126,7 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 }
 
 func (l *loggercheck) processConfig() error {
-	if l.ruleFile != "" {
+	if l.ruleFile != "" { // flags takes precedence over configs
 		f, err := os.Open(l.ruleFile)
 		if err != nil {
 			return fmt.Errorf("failed to open rule file: %w", err)

@@ -34,6 +34,8 @@ type Ruleset struct {
 	Name          string
 	PackageImport string
 	Rules         []FuncRule
+
+	ruleIndicesByFuncName map[string][]int
 }
 
 func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
@@ -43,8 +45,16 @@ func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
 	}
 
 	sig := fn.Type().(*types.Signature) // it's safe since we already checked
-	for _, rule := range rs.Rules {
-		if rule.match(fn, sig) {
+
+	// Fail fast if the function name is not in the rule list.
+	indices, ok := rs.ruleIndicesByFuncName[fn.Name()]
+	if !ok {
+		return false
+	}
+
+	for _, idx := range indices {
+		rule := &rs.Rules[idx]
+		if matchRule(rule, sig) {
 			return true
 		}
 	}
@@ -54,18 +64,8 @@ func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
 
 func emptyQualifier(*types.Package) string { return "" }
 
-type FuncRule struct { // package import should be accessed from Rulset
-	ReceiverType string
-	MethodName   string
-	IsReceiver   bool
-}
-
-func (p *FuncRule) match(fn *types.Func, sig *types.Signature) bool {
-	// we do not check package import here since it's already checked
-	if fn.Name() != p.MethodName {
-		return false
-	}
-
+func matchRule(p *FuncRule, sig *types.Signature) bool {
+	// we do not check package import here since it's already checked in Match()
 	recv := sig.Recv()
 	isReceiver := recv != nil
 	if isReceiver != p.IsReceiver {
@@ -85,6 +85,12 @@ func (p *FuncRule) match(fn *types.Func, sig *types.Signature) bool {
 	return true
 }
 
+type FuncRule struct { // package import should be accessed from Rulset
+	ReceiverType string
+	FuncName     string
+	IsReceiver   bool
+}
+
 func ParseFuncRule(rule string) (packageImport string, pat FuncRule, err error) {
 	lastDot := strings.LastIndexFunc(rule, func(r rune) bool {
 		return r == '.' || r == '/'
@@ -94,7 +100,7 @@ func ParseFuncRule(rule string) (packageImport string, pat FuncRule, err error) 
 	}
 
 	importOrReceiver := rule[:lastDot]
-	pat.MethodName = rule[lastDot+1:]
+	pat.FuncName = rule[lastDot+1:]
 
 	if strings.HasPrefix(rule, "(") { // package
 		if !strings.HasSuffix(importOrReceiver, ")") {
@@ -147,10 +153,17 @@ func ParseRules(lines []string) (result RulesetList, err error) {
 	}
 
 	for packageImport, rules := range rulesByImport {
+		ruleIndicesByFuncName := make(map[string][]int, len(rules))
+		for idx, rule := range rules {
+			fnName := rule.FuncName
+			ruleIndicesByFuncName[fnName] = append(ruleIndicesByFuncName[fnName], idx)
+		}
+
 		result = append(result, Ruleset{
-			Name:          "", // NOTE(timonwong) Always "" for custom rule
-			PackageImport: packageImport,
-			Rules:         rules,
+			Name:                  "", // NOTE(timonwong) Always "" for custom rule
+			PackageImport:         packageImport,
+			Rules:                 rules,
+			ruleIndicesByFuncName: ruleIndicesByFuncName,
 		})
 	}
 	return result, nil
