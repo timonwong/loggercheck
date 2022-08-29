@@ -12,7 +12,7 @@ import (
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 )
 
-var ErrInvalidRule = errors.New("invalid rule")
+var ErrInvalidRule = errors.New("invalid rule format")
 
 type RulesetList []Ruleset
 
