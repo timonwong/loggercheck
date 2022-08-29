@@ -1,22 +1,33 @@
 package loggercheck_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/analysis/analysistest"
 
 	"github.com/timonwong/loggercheck"
+	"github.com/timonwong/loggercheck/internal/rules"
 )
+
+type tracingTestingErrorf struct {
+	*testing.T
+}
+
+func (t tracingTestingErrorf) Errorf(format string, args ...interface{}) {
+	t.Logf(format, args...)
+}
 
 func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
 
 	testCases := []struct {
-		name     string
-		patterns string
-		flags    []string
+		name      string
+		patterns  string
+		flags     []string
+		wantError error
 	}{
 		{
 			name:     "all",
@@ -32,8 +43,18 @@ func TestLinter(t *testing.T) {
 			patterns: "a/customonly",
 			flags: []string{
 				"-disable=logr",
-				fmt.Sprintf("-rulefile=%s", "testdata/custom-rules.txt"),
+				"-rulefile",
+				"testdata/custom-rules.txt",
 			},
+		},
+		{
+			name:     "wrong-rules",
+			patterns: "a/customonly",
+			flags: []string{
+				"-rulefile",
+				"testdata/wrong-rules.txt",
+			},
+			wantError: rules.ErrInvalidRule,
 		},
 	}
 
@@ -43,7 +64,19 @@ func TestLinter(t *testing.T) {
 			a := loggercheck.NewAnalyzer()
 			err := a.Flags.Parse(tc.flags)
 			require.NoError(t, err)
-			analysistest.Run(t, testdata, a, tc.patterns)
+
+			var result []*analysistest.Result
+			if tc.wantError != nil {
+				result = analysistest.Run(&tracingTestingErrorf{t}, testdata, a, tc.patterns)
+			} else {
+				result = analysistest.Run(t, testdata, a, tc.patterns)
+			}
+			require.Len(t, result, 1)
+
+			if tc.wantError != nil {
+				assert.Error(t, result[0].Err)
+				assert.True(t, errors.Is(result[0].Err, tc.wantError))
+			}
 		})
 	}
 }
