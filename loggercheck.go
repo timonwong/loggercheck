@@ -6,7 +6,6 @@ import (
 	"go/ast"
 	"go/types"
 	"os"
-	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -21,7 +20,7 @@ const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	l := &loggercheck{
-		disable: sets.NewString(),
+		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
 	}
 	for _, o := range opts {
 		o(l)
@@ -34,10 +33,9 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
 
-	checkerKeys := strings.Join(staticRuleList.Names(), ",")
 	a.Flags.Init("loggercheck", flag.ExitOnError)
 	a.Flags.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	a.Flags.Var(&l.disable, "disable", fmt.Sprintf("comma-separated list of disabled logger checker (%s)", checkerKeys))
+	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
 	return a
 }
 
@@ -45,8 +43,8 @@ type loggercheck struct {
 	disable  sets.StringSet // flag -disable
 	ruleFile string         // flag -rulefile
 
-	customRules       []string          // used for external integration, for example golangci-lint
-	customRulesetList rules.RulesetList // populate at runtime
+	rules       []string        // used for external integration, for example golangci-lint
+	rulesetList []rules.Ruleset // populate at runtime
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
@@ -59,21 +57,13 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 		return false
 	}
 
-	for i := range staticRuleList {
-		rs := &staticRuleList[i]
+	for i := range l.rulesetList {
+		rs := &l.rulesetList[i]
 		if l.isCheckerDisabled(rs.Name) {
 			// Skip ignored logger checker.
 			continue
 		}
 
-		if rs.Match(fn, pkg) {
-			return true
-		}
-	}
-
-	customRulesetList := l.customRulesetList
-	for i := range customRulesetList {
-		rs := &customRulesetList[i]
 		if rs.Match(fn, pkg) {
 			return true
 		}
@@ -133,17 +123,17 @@ func (l *loggercheck) processConfig() error {
 		}
 		defer f.Close()
 
-		rulesetList, err := rules.ParseRuleFile(f)
+		custom, err := rules.ParseRuleFile(f)
 		if err != nil {
 			return fmt.Errorf("failed to parse rule file: %w", err)
 		}
-		l.customRulesetList = rulesetList
-	} else if len(l.customRules) > 0 {
-		rulesetList, err := rules.ParseRules(l.customRules)
+		l.rulesetList = append(l.rulesetList, custom...)
+	} else if len(l.rules) > 0 {
+		custom, err := rules.ParseRules(l.rules)
 		if err != nil {
 			return fmt.Errorf("failed to parse rules: %w", err)
 		}
-		l.customRulesetList = rulesetList
+		l.rulesetList = append(l.rulesetList, custom...)
 	}
 
 	return nil

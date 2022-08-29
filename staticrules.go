@@ -7,7 +7,7 @@ import (
 	"github.com/timonwong/loggercheck/internal/rules"
 )
 
-var staticRuleList = rules.RulesetList{
+var staticRuleList = []rules.Ruleset{
 	mustNewStaticRuleSet("logr", []string{
 		"(github.com/go-logr/logr.Logger).Error",
 		"(github.com/go-logr/logr.Logger).Info",
