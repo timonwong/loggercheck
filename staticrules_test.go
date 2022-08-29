@@ -22,6 +22,15 @@ func Test_mustNewStaticRuleSet_failCase(t *testing.T) {
 			wantError: "no rules provided",
 		},
 		{
+			name: "multiple-rulesets",
+			rules: []string{
+				"(github.com/go-logr/logr.Logger).Error",
+				"k8s.io/klog/v2.InfoSDepth",
+				"(*go.uber.org/zap.SugaredLogger).Warnw",
+			},
+			wantError: "expected 1 ruleset, got 3",
+		},
+		{
 			name: "bad-rules",
 			rules: []string{
 				"# Comment",
