@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 
+	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 	"github.com/timonwong/loggercheck/internal/rules"
 	"github.com/timonwong/loggercheck/internal/sets"
 )
@@ -49,7 +51,7 @@ func newLoggerCheck(opts ...Option) *loggercheck {
 
 	l.fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
 	l.fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
-	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be of type string")
+	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined literal strings")
 
 	for _, opt := range opts {
 		opt(l)
@@ -83,17 +85,20 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 	return false
 }
 
+// isArgTypeOfString returns true if the argument is string literal or string constant.
 func isArgTypeOfString(pass *analysis.Pass, arg ast.Expr) bool {
 	switch arg := arg.(type) {
 	case *ast.BasicLit: // literals, must be string
 		if arg.Kind == token.STRING {
 			return true
 		}
-	default:
-		typ := pass.TypesInfo.Types[arg].Type
-		if typ, ok := typ.(*types.Basic); ok {
-			if typ.Kind() == types.String {
-				return true
+	case *ast.Ident: // identifiers, we require constant string key
+		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
+			typ := pass.TypesInfo.Types[arg].Type
+			if typ, ok := typ.(*types.Basic); ok {
+				if typ.Kind() == types.String {
+					return true
+				}
 			}
 		}
 	}
@@ -156,10 +161,20 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 				Pos:      arg.Pos(),
 				End:      arg.End(),
 				Category: "logging",
-				Message:  "logging keys must be of type string",
+				Message: fmt.Sprintf(
+					"logging key are expected to be inlined constant strings, please replace %q provided with string",
+					renderNode(pass.Fset, arg)),
 			})
 		}
 	}
+}
+
+func renderNode(fset *token.FileSet, v interface{}) string {
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+
+	_ = printer.Fprint(buf, fset, v) //nolint:errcheck
+	return buf.String()
 }
 
 func (l *loggercheck) processConfig() error {
