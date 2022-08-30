@@ -17,14 +17,14 @@ import (
 	"github.com/timonwong/loggercheck/internal/sets"
 )
 
-const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
+const Doc = `Checks key valur pairs for common logger libraries (kitlog,klog,logr,zap).`
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	l := newLoggerCheck(opts...)
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,
-		Flags:    l.fs,
+		Flags:    *l.fs,
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
@@ -32,24 +32,27 @@ func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 }
 
 type loggercheck struct {
+	fs *flag.FlagSet
+
 	disable          sets.StringSet // flag -disable
 	ruleFile         string         // flag -rulefile
 	requireStringKey bool           // flag -requirestringkey
-	fs               flag.FlagSet
 
 	rules       []string        // used for external integration, for example golangci-lint
 	rulesetList []rules.Ruleset // populate at runtime
 }
 
 func newLoggerCheck(opts ...Option) *loggercheck {
+	fs := flag.NewFlagSet("loggercheck", flag.ExitOnError)
 	l := &loggercheck{
-		fs:          *flag.NewFlagSet("loggercheck", flag.ExitOnError),
+		fs:          fs,
+		disable:     sets.NewString("kitlog"),
 		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
 	}
 
-	l.fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	l.fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
-	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
+	fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
+	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,zap)")
+	fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
 
 	for _, opt := range opts {
 		opt(l)

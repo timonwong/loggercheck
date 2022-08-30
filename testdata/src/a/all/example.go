@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	kitlog "github.com/go-kit/log"
 	"github.com/go-logr/logr"
 	"go.uber.org/zap"
 	"k8s.io/klog/v2"
@@ -98,4 +99,15 @@ func ExampleZap() {
 
 	zap.S().Errorw("message", "err", err, "key1", "value1")
 	zap.S().Errorw("message", err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+}
+
+func ExampleGokitLog() {
+	logger := kitlog.NewNopLogger()
+
+	logger.Log("msg", "message", "key1", "value1")
+	logger.Log("msg")                    // want `odd number of arguments passed as key-value pairs for logging`
+	logger.Log("msg", "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	kitlog.With(logger, "key1", "value1").Log("msg", "message")
+	kitlog.With(logger, "key1").Log("msg", "message") // want `odd number of arguments passed as key-value pairs for logging`
 }
