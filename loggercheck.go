@@ -20,34 +20,42 @@ import (
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
-	l := &loggercheck{
-		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
-	}
-	for _, o := range opts {
-		o(l)
-	}
-
+	l := newLoggerCheck(opts...)
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,
+		Flags:    l.fs,
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
-
-	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
-	a.Flags.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be of type string")
 	return a
 }
 
 type loggercheck struct {
 	disable          sets.StringSet // flag -disable
 	ruleFile         string         // flag -rulefile
-	requireStringKey bool           // flag -stringkeys
+	requireStringKey bool           // flag -requirestringkey
+	fs               flag.FlagSet
 
 	rules       []string        // used for external integration, for example golangci-lint
 	rulesetList []rules.Ruleset // populate at runtime
+}
+
+func newLoggerCheck(opts ...Option) *loggercheck {
+	l := &loggercheck{
+		fs:          *flag.NewFlagSet("loggercheck", flag.ExitOnError),
+		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
+	}
+
+	l.fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
+	l.fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
+	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be of type string")
+
+	for _, opt := range opts {
+		opt(l)
+	}
+
+	return l
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {

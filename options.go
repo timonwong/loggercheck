@@ -17,3 +17,9 @@ func WithRules(customRules []string) Option {
 		l.rules = customRules
 	}
 }
+
+func WithRequireStringKey(enabled bool) Option {
+	return func(l *loggercheck) {
+		l.requireStringKey = enabled
+	}
+}
