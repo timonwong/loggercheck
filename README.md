@@ -49,7 +49,7 @@ Flags:
   -memprofile string
         write memory profile to this file
   -requirestringkey
-        require all logging keys to be of type string
+        require all logging keys to be inlined constant strings
   -rulefile string
         path to a file contains a list of rules
   -source
