@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"go.uber.org/zap"
 )
 
 func ExampleRequireStringKey() {
@@ -34,4 +35,10 @@ func ExampleRequireStringKey() {
 	log.Error(err, "message", "键1", "value1") // want `logging keys are expected to be alphanumeric strings, please remove any non-latin characters from "键1"`
 	const KeyNonASCII = "键1"
 	log.Error(err, "message", KeyNonASCII, "value1") // want `logging keys are expected to be alphanumeric strings, please remove any non-latin characters from "键1"`
+
+	field := zap.String("key1", "value1")
+	field2 := zap.Int("key2", 2)
+	field3 := zap.Bool("key3", true)
+	const Key4Int = 4
+	zap.S().Infow("message", field, field2, field3, Key4Int, "value4") // want `logging keys are expected to be inlined constant strings, please replace "Key4Int" provided with string`
 }

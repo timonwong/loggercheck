@@ -4,21 +4,17 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/printer"
-	"go/token"
 	"go/types"
 	"os"
-	"unicode/utf8"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 
-	"github.com/timonwong/loggercheck/internal/bytebufferpool"
+	"github.com/timonwong/loggercheck/internal/checkers"
 	"github.com/timonwong/loggercheck/internal/rules"
 	"github.com/timonwong/loggercheck/internal/sets"
-	"github.com/timonwong/loggercheck/internal/stringutil"
 )
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
@@ -66,10 +62,10 @@ func (l *loggercheck) isCheckerDisabled(name string) bool {
 	return l.disable.Has(name)
 }
 
-func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
+func (l *loggercheck) getCheckerForFunc(fn *types.Func) checkers.Checker {
 	pkg := fn.Pkg()
 	if pkg == nil {
-		return false
+		return nil
 	}
 
 	for i := range l.rulesetList {
@@ -79,33 +75,18 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 			continue
 		}
 
-		if rs.Match(fn, pkg) {
-			return true
+		if !rs.Match(fn, pkg) {
+			continue
 		}
+
+		checker := checkerByRulesetName[rs.Name]
+		if checker == nil {
+			return checkers.General{}
+		}
+		return checker
 	}
 
-	return false
-}
-
-// getStringValueFromArg returns true if the argument is string literal or string constant.
-func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
-	switch arg := arg.(type) {
-	case *ast.BasicLit: // literals, must be string
-		if arg.Kind == token.STRING {
-			return arg.Value, true
-		}
-	case *ast.Ident: // identifiers, we require constant string key
-		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
-			typeAndValue := pass.TypesInfo.Types[arg]
-			if typ, ok := typeAndValue.Type.(*types.Basic); ok {
-				if typ.Kind() == types.String {
-					return typeAndValue.Value.ExactString(), true
-				}
-			}
-		}
-	}
-
-	return "", false
+	return nil
 }
 
 func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
@@ -119,68 +100,23 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 		return // not variadic
 	}
 
-	if !l.isValidLoggerFunc(fn) {
-		return
-	}
-
 	// ellipsis args is hard, just skip
 	if call.Ellipsis.IsValid() {
 		return
 	}
 
-	params := sig.Params()
-	nparams := params.Len() // variadic => nonzero
-	args := params.At(nparams - 1)
-	iface, ok := args.Type().(*types.Slice).Elem().(*types.Interface)
-	if !ok || !iface.Empty() {
-		return // final (args) param is not ...interface{}
+	checker := l.getCheckerForFunc(fn)
+	if checker == nil {
+		return
 	}
 
-	startIndex := nparams - 1
-	nargs := len(call.Args)
-
-	// Check the argument count
-	variadicLen := nargs - startIndex
-	if variadicLen%2 != 0 {
-		firstArg := call.Args[startIndex]
-		lastArg := call.Args[nargs-1]
-		pass.Report(analysis.Diagnostic{
-			Pos:      firstArg.Pos(),
-			End:      lastArg.End(),
-			Category: "logging",
-			Message:  "odd number of arguments passed as key-value pairs for logging",
-		})
-	}
-
-	// Check the "key" type
-	if l.requireStringKey {
-		for i := startIndex; i < nargs; i += 2 {
-			arg := call.Args[i]
-			if value, ok := getStringValueFromArg(pass, arg); ok {
-				if stringutil.IsASCII(value) {
-					continue
-				}
-
-				pass.Report(analysis.Diagnostic{
-					Pos:      arg.Pos(),
-					End:      arg.End(),
-					Category: "logging",
-					Message: fmt.Sprintf(
-						"logging keys are expected to be alphanumeric strings, please remove any non-latin characters from %s",
-						value),
-				})
-			} else {
-				pass.Report(analysis.Diagnostic{
-					Pos:      arg.Pos(),
-					End:      arg.End(),
-					Category: "logging",
-					Message: fmt.Sprintf(
-						"logging keys are expected to be inlined constant strings, please replace %q provided with string",
-						renderNodeEllipsis(pass.Fset, arg)),
-				})
-			}
-		}
-	}
+	checker.CheckAndReport(pass, checkers.CallContext{
+		Expr:      call,
+		Func:      fn,
+		Signature: sig,
+	}, checkers.Config{
+		RequireStringKey: l.requireStringKey,
+	})
 }
 
 func (l *loggercheck) processConfig() error {
@@ -230,24 +166,4 @@ func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	return nil, nil
-}
-
-func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {
-	const maxLen = 20
-
-	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
-
-	_ = printer.Fprint(buf, fset, v)
-	s := buf.String()
-	if utf8.RuneCountInString(s) > maxLen {
-		// Copied from go/constant/value.go
-		i := 0
-		for n := 0; n < maxLen-3; n++ {
-			_, size := utf8.DecodeRuneInString(s[i:])
-			i += size
-		}
-		s = s[:i] + "..."
-	}
-	return s
 }

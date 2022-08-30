@@ -63,6 +63,10 @@ func ExampleKlog() {
 func ExampleZap() {
 	err := errors.New("example error")
 
+	field := zap.String("key1", "value1")
+	field2 := zap.Int("key2", 2)
+	field3 := zap.Bool("key3", true)
+
 	// custom SugaredLogger
 	log := zap.NewExample().Sugar()
 	defer log.Sync()
@@ -75,12 +79,22 @@ func ExampleZap() {
 
 	// with test
 	log.With("with_key1", "with_value1").Infow("message", "key1", "value1")
+	log.With("with_key1", "with_value1", field).Infow("message", "key1", "value1")
+	log.With("with_key1", "with_value1", field, field2, field3).Infow("message", "key1", "value1")
 	log.With("with_key1", "with_value1").Infow("message", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
 	log.With("with_key1").Infow("message", "key1", "value1")                        // want `odd number of arguments passed as key-value pairs for logging`
+	log.With("with_key1", field).Infow("message", "key1", "value1")                 // want `odd number of arguments passed as key-value pairs for logging`
 
 	// default global SugaredLogger
 	zap.S().With("with_key1", "with_value1").Infow("message", "key1", "value1", "key2", "value2")
+	zap.S().With("with_key1", "with_value1", field).Infow("message")
+	zap.S().With("with_key1", field).Infow("message")                    // want `odd number of arguments passed as key-value pairs for logging`
 	zap.S().Infow("message", "key1", "value1", "key2", "value2", "key3") // want `odd number of arguments passed as key-value pairs for logging`
+
+	zap.S().Infow("message", zap.String("key1", "value1"))
+	zap.S().Infow("message", field, field2, field3)
+	zap.S().Infow("message", field, "key1", "value1")
+	zap.S().Infow("message", field, field2, field3, "key1") // want `odd number of arguments passed as key-value pairs for logging`
 
 	zap.S().Errorw("message", "err", err, "key1", "value1")
 	zap.S().Errorw("message", err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
