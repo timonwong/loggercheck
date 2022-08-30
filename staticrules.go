@@ -33,6 +33,12 @@ var (
 			"(*go.uber.org/zap.SugaredLogger).Panicw",
 			"(*go.uber.org/zap.SugaredLogger).Fatalw",
 		}),
+		mustNewStaticRuleSet("kitlog", []string{
+			"github.com/go-kit/log.With",
+			"github.com/go-kit/log.WithPrefix",
+			"github.com/go-kit/log.WithSuffix",
+			"(github.com/go-kit/log.Logger).Log",
+		}),
 	}
 	checkerByRulesetName = map[string]checkers.Checker{
 		// by default, checkers.General will be used.
