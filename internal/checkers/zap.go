@@ -32,6 +32,8 @@ func (z Zap) CheckAndReport(pass *analysis.Pass, call CallContext, cfg Config) {
 			switch typ := typ.(type) {
 			case *types.Named:
 				obj := typ.Obj()
+				// Actually it's go.uber.org/zap/zapcore.Field, however for simplicity
+				// we don't check the import path
 				if obj != nil && obj.Name() == "Field" {
 					continue
 				}
