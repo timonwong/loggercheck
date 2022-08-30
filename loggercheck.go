@@ -238,7 +238,7 @@ func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {
 	buf := bytebufferpool.Get()
 	defer bytebufferpool.Put(buf)
 
-	_ = printer.Fprint(buf, fset, v) //nolint:errcheck
+	_ = printer.Fprint(buf, fset, v)
 	s := buf.String()
 	if utf8.RuneCountInString(s) > maxLen {
 		// Copied from go/constant/value.go
