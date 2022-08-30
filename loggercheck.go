@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"unicode/utf8"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -17,6 +18,7 @@ import (
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 	"github.com/timonwong/loggercheck/internal/rules"
 	"github.com/timonwong/loggercheck/internal/sets"
+	"github.com/timonwong/loggercheck/internal/stringutil"
 )
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
@@ -85,25 +87,25 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 	return false
 }
 
-// isArgTypeOfString returns true if the argument is string literal or string constant.
-func isArgTypeOfString(pass *analysis.Pass, arg ast.Expr) bool {
+// getStringValueFromArg returns true if the argument is string literal or string constant.
+func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
 	switch arg := arg.(type) {
 	case *ast.BasicLit: // literals, must be string
 		if arg.Kind == token.STRING {
-			return true
+			return arg.Value, true
 		}
 	case *ast.Ident: // identifiers, we require constant string key
 		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
-			typ := pass.TypesInfo.Types[arg].Type
-			if typ, ok := typ.(*types.Basic); ok {
+			typeAndValue := pass.TypesInfo.Types[arg]
+			if typ, ok := typeAndValue.Type.(*types.Basic); ok {
 				if typ.Kind() == types.String {
-					return true
+					return typeAndValue.Value.ExactString(), true
 				}
 			}
 		}
 	}
 
-	return false
+	return "", false
 }
 
 func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
@@ -154,28 +156,31 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 	if l.requireStringKey {
 		for i := startIndex; i < nargs; i += 2 {
 			arg := call.Args[i]
-			if isArgTypeOfString(pass, arg) {
-				continue
-			}
+			if value, ok := getStringValueFromArg(pass, arg); ok {
+				if stringutil.IsASCII(value) {
+					continue
+				}
 
-			pass.Report(analysis.Diagnostic{
-				Pos:      arg.Pos(),
-				End:      arg.End(),
-				Category: "logging",
-				Message: fmt.Sprintf(
-					"logging key are expected to be inlined constant strings, please replace %q provided with string",
-					renderNode(pass.Fset, arg)),
-			})
+				pass.Report(analysis.Diagnostic{
+					Pos:      arg.Pos(),
+					End:      arg.End(),
+					Category: "logging",
+					Message: fmt.Sprintf(
+						"logging keys are expected to be alphanumeric strings, please remove any non-latin characters from %s",
+						value),
+				})
+			} else {
+				pass.Report(analysis.Diagnostic{
+					Pos:      arg.Pos(),
+					End:      arg.End(),
+					Category: "logging",
+					Message: fmt.Sprintf(
+						"logging keys are expected to be inlined constant strings, please replace %q provided with string",
+						renderNodeEllipsis(pass.Fset, arg)),
+				})
+			}
 		}
 	}
-}
-
-func renderNode(fset *token.FileSet, v interface{}) string {
-	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
-
-	_ = printer.Fprint(buf, fset, v) //nolint:errcheck
-	return buf.String()
 }
 
 func (l *loggercheck) processConfig() error {
@@ -225,4 +230,24 @@ func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	return nil, nil
+}
+
+func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {
+	const maxLen = 20
+
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+
+	_ = printer.Fprint(buf, fset, v) //nolint:errcheck
+	s := buf.String()
+	if utf8.RuneCountInString(s) > maxLen {
+		// Copied from go/constant/value.go
+		i := 0
+		for n := 0; n < maxLen-3; n++ {
+			_, size := utf8.DecodeRuneInString(s[i:])
+			i += size
+		}
+		s = s[:i] + "..."
+	}
+	return s
 }
