@@ -82,6 +82,12 @@ func ExampleZap() {
 	zap.S().With("with_key1", "with_value1").Infow("message", "key1", "value1", "key2", "value2")
 	zap.S().Infow("message", "key1", "value1", "key2", "value2", "key3") // want `odd number of arguments passed as key-value pairs for logging`
 
+	zap.S().Infow("message", zap.String("key1", "value1"))
+	field := zap.String("key1", "value1")
+	field2 := zap.Int("key2", 2)
+	field3 := zap.Bool("key3", true)
+	zap.S().Infow("message", field, field2, field3)
+
 	zap.S().Errorw("message", "err", err, "key1", "value1")
 	zap.S().Errorw("message", err, "message", "key1") // want `odd number of arguments passed as key-value pairs for logging`
 }
