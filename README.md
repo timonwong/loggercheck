@@ -40,7 +40,7 @@ Flags:
   -debug string
         debug flags, any subset of "fpstv"
   -disable value
-        comma-separated list of disabled logger checker (kitlog,klog,logr,zap)
+        comma-separated list of disabled logger checker (kitlog,klog,logr,zap) (default kitlog)
   -fix
         apply all suggested fixes
   -flags
