@@ -51,7 +51,7 @@ func newLoggerCheck(opts ...Option) *loggercheck {
 
 	l.fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
 	l.fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
-	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined literal strings")
+	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
 
 	for _, opt := range opts {
 		opt(l)
@@ -137,6 +137,7 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 	startIndex := nparams - 1
 	nargs := len(call.Args)
 
+	// Check the argument count
 	variadicLen := nargs - startIndex
 	if variadicLen%2 != 0 {
 		firstArg := call.Args[startIndex]
