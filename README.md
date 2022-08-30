@@ -22,7 +22,7 @@ go install github.com/timonwong/loggercheck/cmd/loggercheck
 
 ## Usage
 
-```shell
+```
 loggercheck: Checks key valur pairs for common logger libraries (logr,klog,zap).
 
 Usage: loggercheck [-flag] [package]
@@ -48,7 +48,9 @@ Flags:
         emit JSON output
   -memprofile string
         write memory profile to this file
-  -rulefile value
+  -requirestringkey
+        require all logging keys to be inlined constant strings
+  -rulefile string
         path to a file contains a list of rules
   -source
         no effect (deprecated)

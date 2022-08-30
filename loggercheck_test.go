@@ -32,6 +32,11 @@ func TestLinter(t *testing.T) {
 			patterns: "a/all",
 		},
 		{
+			name:     "requirestringkey",
+			patterns: "a/requirestringkey",
+			flags:    []string{"-requirestringkey"},
+		},
+		{
 			name:     "klogonly",
 			patterns: "a/klogonly",
 			flags:    []string{"-disable=logr,zap"},
@@ -99,8 +104,9 @@ func TestOptions(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name    string
-		options []loggercheck.Option
+		name     string
+		options  []loggercheck.Option
+		patterns string
 	}{
 		{
 			name: "disable-all-then-enable-mylogger",
@@ -108,6 +114,7 @@ func TestOptions(t *testing.T) {
 				loggercheck.WithDisable([]string{"klog", "logr", "zap"}),
 				loggercheck.WithRules(customRules),
 			},
+			patterns: "a/customonly",
 		},
 		{
 			name: "ignore-logr",
@@ -115,6 +122,14 @@ func TestOptions(t *testing.T) {
 				loggercheck.WithDisable([]string{"logr"}),
 				loggercheck.WithRules(customRules),
 			},
+			patterns: "a/customonly",
+		},
+		{
+			name: "requirestringkey",
+			options: []loggercheck.Option{
+				loggercheck.WithRequireStringKey(true),
+			},
+			patterns: "a/requirestringkey",
 		},
 	}
 
@@ -122,7 +137,7 @@ func TestOptions(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			a := loggercheck.NewAnalyzer(tc.options...)
-			analysistest.Run(t, testdata, a, "a/customonly")
+			analysistest.Run(t, testdata, a, tc.patterns)
 		})
 	}
 }

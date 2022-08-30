@@ -4,47 +4,62 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/printer"
+	"go/token"
 	"go/types"
 	"os"
+	"unicode/utf8"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/types/typeutil"
 
+	"github.com/timonwong/loggercheck/internal/bytebufferpool"
 	"github.com/timonwong/loggercheck/internal/rules"
 	"github.com/timonwong/loggercheck/internal/sets"
+	"github.com/timonwong/loggercheck/internal/stringutil"
 )
 
 const Doc = `Checks key valur pairs for common logger libraries (logr,klog,zap).`
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
-	l := &loggercheck{
-		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
-	}
-	for _, o := range opts {
-		o(l)
-	}
-
+	l := newLoggerCheck(opts...)
 	a := &analysis.Analyzer{
 		Name:     "loggercheck",
 		Doc:      Doc,
+		Flags:    l.fs,
 		Run:      l.run,
 		Requires: []*analysis.Analyzer{inspect.Analyzer},
 	}
-
-	a.Flags.Init("loggercheck", flag.ExitOnError)
-	a.Flags.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	a.Flags.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
 	return a
 }
 
 type loggercheck struct {
-	disable  sets.StringSet // flag -disable
-	ruleFile string         // flag -rulefile
+	disable          sets.StringSet // flag -disable
+	ruleFile         string         // flag -rulefile
+	requireStringKey bool           // flag -requirestringkey
+	fs               flag.FlagSet
 
 	rules       []string        // used for external integration, for example golangci-lint
 	rulesetList []rules.Ruleset // populate at runtime
+}
+
+func newLoggerCheck(opts ...Option) *loggercheck {
+	l := &loggercheck{
+		fs:          *flag.NewFlagSet("loggercheck", flag.ExitOnError),
+		rulesetList: append([]rules.Ruleset{}, staticRuleList...), // ensure we make a clone of static rules first
+	}
+
+	l.fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
+	l.fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (klog,logr,zap)")
+	l.fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
+
+	for _, opt := range opts {
+		opt(l)
+	}
+
+	return l
 }
 
 func (l *loggercheck) isCheckerDisabled(name string) bool {
@@ -70,6 +85,27 @@ func (l *loggercheck) isValidLoggerFunc(fn *types.Func) bool {
 	}
 
 	return false
+}
+
+// getStringValueFromArg returns true if the argument is string literal or string constant.
+func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
+	switch arg := arg.(type) {
+	case *ast.BasicLit: // literals, must be string
+		if arg.Kind == token.STRING {
+			return arg.Value, true
+		}
+	case *ast.Ident: // identifiers, we require constant string key
+		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
+			typeAndValue := pass.TypesInfo.Types[arg]
+			if typ, ok := typeAndValue.Type.(*types.Basic); ok {
+				if typ.Kind() == types.String {
+					return typeAndValue.Value.ExactString(), true
+				}
+			}
+		}
+	}
+
+	return "", false
 }
 
 func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallExpr) {
@@ -102,6 +138,8 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 
 	startIndex := nparams - 1
 	nargs := len(call.Args)
+
+	// Check the argument count
 	variadicLen := nargs - startIndex
 	if variadicLen%2 != 0 {
 		firstArg := call.Args[startIndex]
@@ -112,6 +150,36 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 			Category: "logging",
 			Message:  "odd number of arguments passed as key-value pairs for logging",
 		})
+	}
+
+	// Check the "key" type
+	if l.requireStringKey {
+		for i := startIndex; i < nargs; i += 2 {
+			arg := call.Args[i]
+			if value, ok := getStringValueFromArg(pass, arg); ok {
+				if stringutil.IsASCII(value) {
+					continue
+				}
+
+				pass.Report(analysis.Diagnostic{
+					Pos:      arg.Pos(),
+					End:      arg.End(),
+					Category: "logging",
+					Message: fmt.Sprintf(
+						"logging keys are expected to be alphanumeric strings, please remove any non-latin characters from %s",
+						value),
+				})
+			} else {
+				pass.Report(analysis.Diagnostic{
+					Pos:      arg.Pos(),
+					End:      arg.End(),
+					Category: "logging",
+					Message: fmt.Sprintf(
+						"logging keys are expected to be inlined constant strings, please replace %q provided with string",
+						renderNodeEllipsis(pass.Fset, arg)),
+				})
+			}
+		}
 	}
 }
 
@@ -162,4 +230,24 @@ func (l *loggercheck) run(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	return nil, nil
+}
+
+func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {
+	const maxLen = 20
+
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+
+	_ = printer.Fprint(buf, fset, v)
+	s := buf.String()
+	if utf8.RuneCountInString(s) > maxLen {
+		// Copied from go/constant/value.go
+		i := 0
+		for n := 0; n < maxLen-3; n++ {
+			_, size := utf8.DecodeRuneInString(s[i:])
+			i += size
+		}
+		s = s[:i] + "..."
+	}
+	return s
 }
