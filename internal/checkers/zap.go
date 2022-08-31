@@ -11,9 +11,7 @@ type Zap struct {
 	General
 }
 
-var _ Checker = (*Zap)(nil)
-
-func (z Zap) CheckAndReport(pass *analysis.Pass, call CallContext, cfg Config) {
+func (z Zap) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) []ast.Expr {
 	args := call.Expr.Args
 	params := call.Signature.Params()
 
@@ -43,20 +41,7 @@ func (z Zap) CheckAndReport(pass *analysis.Pass, call CallContext, cfg Config) {
 		}
 		keyValuesArgs = append(keyValuesArgs, arg)
 	}
-
-	if len(keyValuesArgs)%2 != 0 {
-		firstArg := args[startIndex]
-		lastArg := args[nargs-1]
-		pass.Report(analysis.Diagnostic{
-			Pos:      firstArg.Pos(),
-			End:      lastArg.End(),
-			Category: "logging",
-			Message:  "odd number of arguments passed as key-value pairs for logging",
-		})
-	}
-
-	// Check the "key" type
-	if cfg.RequireStringKey {
-		checkLoggingKey(pass, keyValuesArgs)
-	}
+	return keyValuesArgs
 }
+
+var _ Checker = (*Zap)(nil)
