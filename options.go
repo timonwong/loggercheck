@@ -18,8 +18,14 @@ func WithRules(customRules []string) Option {
 	}
 }
 
-func WithRequireStringKey(enabled bool) Option {
+func WithRequireStringKey(requireStringKey bool) Option {
 	return func(l *loggercheck) {
-		l.requireStringKey = enabled
+		l.requireStringKey = requireStringKey
+	}
+}
+
+func WithNoPrintflike(noPrintfLike bool) Option {
+	return func(l *loggercheck) {
+		l.noPrintfLike = noPrintfLike
 	}
 }

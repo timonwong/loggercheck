@@ -37,6 +37,7 @@ type loggercheck struct {
 	disable          sets.StringSet // flag -disable
 	ruleFile         string         // flag -rulefile
 	requireStringKey bool           // flag -requirestringkey
+	noPrintfLike     bool           // flag -noprintflike
 
 	rules       []string        // used for external integration, for example golangci-lint
 	rulesetList []rules.Ruleset // populate at runtime
@@ -53,6 +54,7 @@ func newLoggerCheck(opts ...Option) *loggercheck {
 	fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
 	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,zap)")
 	fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
+	fs.BoolVar(&l.noPrintfLike, "noprintflike", false, "require printf-like format specifier not present in message args")
 
 	for _, opt := range opts {
 		opt(l)
@@ -113,12 +115,13 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 		return
 	}
 
-	checker.CheckAndReport(pass, checkers.CallContext{
+	checkers.ExecuteChecker(checker, pass, &checkers.CallContext{
 		Expr:      call,
 		Func:      fn,
 		Signature: sig,
 	}, checkers.Config{
 		RequireStringKey: l.requireStringKey,
+		NoPrintfLike:     l.noPrintfLike,
 	})
 }
 

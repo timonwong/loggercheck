@@ -1,67 +1,42 @@
 package checkers
 
 import (
-	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/printer"
 	"go/token"
 	"go/types"
+	"strconv"
 	"unicode/utf8"
 
 	"golang.org/x/tools/go/analysis"
 
 	"github.com/timonwong/loggercheck/internal/bytebufferpool"
-	"github.com/timonwong/loggercheck/internal/stringutil"
+)
+
+const (
+	DiagnosticCategory = "logging"
 )
 
 // getStringValueFromArg returns true if the argument is string literal or string constant.
 func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
 	switch arg := arg.(type) {
-	case *ast.BasicLit: // literals, must be string
+	case *ast.BasicLit: // literals, string literals specifically
 		if arg.Kind == token.STRING {
-			return arg.Value, true
+			if val, err := strconv.Unquote(arg.Value); err == nil {
+				return val, true
+			}
 		}
-	case *ast.Ident: // identifiers, we require constant string key
+	case *ast.Ident: // identifiers, string constants specifically
 		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
 			typeAndValue := pass.TypesInfo.Types[arg]
-			if typ, ok := typeAndValue.Type.(*types.Basic); ok {
-				if typ.Kind() == types.String {
-					return typeAndValue.Value.ExactString(), true
-				}
+			if typ, ok := typeAndValue.Type.(*types.Basic); ok && typ.Kind() == types.String {
+				return constant.StringVal(typeAndValue.Value), true
 			}
 		}
 	}
 
 	return "", false
-}
-
-func checkLoggingKey(pass *analysis.Pass, keyValuesArgs []ast.Expr) {
-	for i := 0; i < len(keyValuesArgs); i += 2 {
-		arg := keyValuesArgs[i]
-		if value, ok := getStringValueFromArg(pass, arg); ok {
-			if stringutil.IsASCII(value) {
-				continue
-			}
-
-			pass.Report(analysis.Diagnostic{
-				Pos:      arg.Pos(),
-				End:      arg.End(),
-				Category: "logging",
-				Message: fmt.Sprintf(
-					"logging keys are expected to be alphanumeric strings, please remove any non-latin characters from %s",
-					value),
-			})
-		} else {
-			pass.Report(analysis.Diagnostic{
-				Pos:      arg.Pos(),
-				End:      arg.End(),
-				Category: "logging",
-				Message: fmt.Sprintf(
-					"logging keys are expected to be inlined constant strings, please replace %q provided with string",
-					renderNodeEllipsis(pass.Fset, arg)),
-			})
-		}
-	}
 }
 
 func renderNodeEllipsis(fset *token.FileSet, v interface{}) string {

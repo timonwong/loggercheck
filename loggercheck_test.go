@@ -33,9 +33,14 @@ func TestLinter(t *testing.T) {
 			flags:    []string{"-disable="},
 		},
 		{
-			name:     "requirestringkey",
+			name:     "require-string-key",
 			patterns: "a/requirestringkey",
 			flags:    []string{"-requirestringkey"},
+		},
+		{
+			name:     "no-printf-like",
+			patterns: "a/noprintflike",
+			flags:    []string{"-noprintflike"},
 		},
 		{
 			name:     "klogonly",
@@ -126,11 +131,18 @@ func TestOptions(t *testing.T) {
 			patterns: "a/customonly",
 		},
 		{
-			name: "requirestringkey",
+			name: "require-string-key",
 			options: []loggercheck.Option{
 				loggercheck.WithRequireStringKey(true),
 			},
 			patterns: "a/requirestringkey",
+		},
+		{
+			name: "no-printf-like",
+			options: []loggercheck.Option{
+				loggercheck.WithNoPrintflike(true),
+			},
+			patterns: "a/noprintflike",
 		},
 	}
 
