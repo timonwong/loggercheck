@@ -12,7 +12,7 @@ import (
 
 type General struct{}
 
-func (g General) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) []ast.Expr {
+func (g General) ExtractLoggingKeyAndValues(_ *analysis.Pass, call *CallContext) []ast.Expr {
 	args := call.Expr.Args
 	params := call.Signature.Params()
 

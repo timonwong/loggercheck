@@ -115,7 +115,7 @@ func (s *formatState) parseIndex() bool {
 			return false
 		}
 	}
-	arg32, err := strconv.ParseInt(s.format[start:s.nbytes], 10, 32) //nolint:gomnd
+	arg32, err := strconv.ParseInt(s.format[start:s.nbytes], 10, 32)
 	if err != nil || !ok || arg32 <= 0 {
 		return false
 	}

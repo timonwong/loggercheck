@@ -21,19 +21,17 @@ const (
 // getStringValueFromArg returns true if the argument is string literal or string constant.
 func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
 	switch arg := arg.(type) {
-	case *ast.BasicLit: // literals, must be string
+	case *ast.BasicLit: // literals, string literals specifically
 		if arg.Kind == token.STRING {
 			if val, err := strconv.Unquote(arg.Value); err == nil {
 				return val, true
 			}
 		}
-	case *ast.Ident: // identifiers, we require constant string key
+	case *ast.Ident: // identifiers, string constants specifically
 		if arg.Obj != nil && arg.Obj.Kind == ast.Con {
 			typeAndValue := pass.TypesInfo.Types[arg]
-			if typ, ok := typeAndValue.Type.(*types.Basic); ok {
-				if typ.Kind() == types.String {
-					return constant.StringVal(typeAndValue.Value), true
-				}
+			if typ, ok := typeAndValue.Type.(*types.Basic); ok && typ.Kind() == types.String {
+				return constant.StringVal(typeAndValue.Value), true
 			}
 		}
 	}

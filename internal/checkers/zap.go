@@ -23,6 +23,8 @@ func (z Zap) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) 
 	keyValuesArgs := make([]ast.Expr, 0, nargs-startIndex)
 	for i := startIndex; i < nargs; i++ {
 		arg := args[i]
+
+		// Skip any zapcore.Field we found
 		switch arg := arg.(type) {
 		case *ast.CallExpr, *ast.Ident:
 			typ := pass.TypesInfo.TypeOf(arg)
@@ -39,6 +41,7 @@ func (z Zap) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) 
 				// pass
 			}
 		}
+
 		keyValuesArgs = append(keyValuesArgs, arg)
 	}
 	return keyValuesArgs
