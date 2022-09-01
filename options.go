@@ -24,7 +24,7 @@ func WithRequireStringKey(requireStringKey bool) Option {
 	}
 }
 
-func WithNoPrintflike(noPrintfLike bool) Option {
+func WithNoPrintfLike(noPrintfLike bool) Option {
 	return func(l *loggercheck) {
 		l.noPrintfLike = noPrintfLike
 	}
