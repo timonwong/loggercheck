@@ -140,7 +140,7 @@ func TestOptions(t *testing.T) {
 		{
 			name: "no-printf-like",
 			options: []loggercheck.Option{
-				loggercheck.WithNoPrintflike(true),
+				loggercheck.WithNoPrintfLike(true),
 			},
 			patterns: "a/noprintflike",
 		},
