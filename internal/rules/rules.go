@@ -65,9 +65,7 @@ func receiverTypeOf(recvType types.Type) string {
 
 	buf.WriteString(recvElemType.Obj().Name())
 	typeParams := recvElemType.TypeParams()
-	typeParamsLen := typeParams.Len()
-
-	if typeParamsLen > 0 {
+	if typeParamsLen := typeParams.Len(); typeParamsLen > 0 {
 		buf.WriteByte('[')
 		for i := 0; i < typeParamsLen; i++ {
 			if i > 0 {
