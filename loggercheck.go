@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/types"
 	"os"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -39,8 +40,9 @@ type loggercheck struct {
 	requireStringKey bool           // flag -requirestringkey
 	noPrintfLike     bool           // flag -noprintflike
 
-	rules       []string        // used for external integration, for example golangci-lint
-	rulesetList []rules.Ruleset // populate at runtime
+	rules                  []string         // used for external integration, for example golangci-lint
+	rulesetList            []rules.Ruleset  // populate at runtime
+	rulesetIndicesByImport map[string][]int // ruleset index, populate at runtime
 }
 
 func newLoggerCheck(opts ...Option) *loggercheck {
@@ -67,20 +69,32 @@ func (l *loggercheck) isCheckerDisabled(name string) bool {
 	return l.disable.Has(name)
 }
 
+// vendorLessPath returns the devendorized version of the import path ipath.
+// For example: "a/vendor/github.com/go-logr/logr" will become "github.com/go-logr/logr".
+func vendorLessPath(ipath string) string {
+	if i := strings.LastIndex(ipath, "/vendor/"); i >= 0 {
+		return ipath[i+len("/vendor/"):]
+	}
+	return ipath
+}
+
 func (l *loggercheck) getCheckerForFunc(fn *types.Func) checkers.Checker {
 	pkg := fn.Pkg()
 	if pkg == nil {
 		return nil
 	}
 
-	for i := range l.rulesetList {
-		rs := &l.rulesetList[i]
+	pkgPath := vendorLessPath(pkg.Path())
+	indices := l.rulesetIndicesByImport[pkgPath]
+
+	for _, idx := range indices {
+		rs := &l.rulesetList[idx]
 		if l.isCheckerDisabled(rs.Name) {
 			// Skip ignored logger checker.
 			continue
 		}
 
-		if !rs.Match(fn, pkg) {
+		if !rs.Match(fn) {
 			continue
 		}
 
@@ -145,6 +159,13 @@ func (l *loggercheck) processConfig() error {
 		}
 		l.rulesetList = append(l.rulesetList, custom...)
 	}
+
+	// Build index
+	indices := make(map[string][]int)
+	for i, rs := range l.rulesetList {
+		indices[rs.PackageImport] = append(indices[rs.PackageImport], i)
+	}
+	l.rulesetIndicesByImport = indices
 
 	return nil
 }

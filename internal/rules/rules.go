@@ -23,12 +23,8 @@ type Ruleset struct {
 	ruleIndicesByFuncName map[string][]int
 }
 
-func (rs *Ruleset) Match(fn *types.Func, pkg *types.Package) bool {
-	pkgPath := pkg.Path()
-	if pkgPath != rs.PackageImport && !strings.HasSuffix(pkgPath, "/vendor/"+rs.PackageImport) {
-		return false
-	}
-
+func (rs *Ruleset) Match(fn *types.Func) bool {
+	// PackageImport is already checked (by indices), skip checking it here
 	sig := fn.Type().(*types.Signature) // it's safe since we already checked
 
 	// Fail fast if the function name is not in the rule list.
