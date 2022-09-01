@@ -22,8 +22,8 @@ func ExamplePrintfLike() {
 	log.Info("%#[1].3")
 	log.Info("%[3]*.[2*[1]f", "intKey", 1)
 
-	// will not check key value pairs
-	log.Info("message", "key%s", "value%s")
+	// Check message and key value pairs
+	log.Info("message", "key%s", "value %d") // want `logging message should not use format specifier "%s"`
 
 	log.Info("%[3]*s x") // want `logging message should not use format specifier ".+"`
 	log.Info("%[3]d x")  // want `logging message should not use format specifier ".+"`

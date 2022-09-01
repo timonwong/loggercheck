@@ -18,8 +18,8 @@ const (
 	DiagnosticCategory = "logging"
 )
 
-// getStringValueFromArg returns true if the argument is string literal or string constant.
-func getStringValueFromArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
+// extractValueFromStringArg returns true if the argument is string literal or string constant.
+func extractValueFromStringArg(pass *analysis.Pass, arg ast.Expr) (value string, ok bool) {
 	switch arg := arg.(type) {
 	case *ast.BasicLit: // literals, string literals specifically
 		if arg.Kind == token.STRING {
