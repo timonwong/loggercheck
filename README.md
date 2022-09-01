@@ -49,6 +49,8 @@ Flags:
         emit JSON output
   -memprofile string
         write memory profile to this file
+  -noprintflike
+        require printf-like format specifier not present in args
   -requirestringkey
         require all logging keys to be inlined constant strings
   -rulefile string
