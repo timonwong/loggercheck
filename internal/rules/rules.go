@@ -47,24 +47,24 @@ func receiverTypeOf(recvType types.Type) string {
 	buf := bytebufferpool.Get()
 	defer bytebufferpool.Put(buf)
 
-	var recvElemType *types.Named
+	var recvNamed *types.Named
 	switch recvType := recvType.(type) {
 	case *types.Pointer:
 		buf.WriteByte('*')
 		if elem, ok := recvType.Elem().(*types.Named); ok {
-			recvElemType = elem
+			recvNamed = elem
 		}
 	case *types.Named:
-		recvElemType = recvType
+		recvNamed = recvType
 	}
 
-	if recvElemType == nil {
+	if recvNamed == nil {
 		// not supported type
 		return ""
 	}
 
-	buf.WriteString(recvElemType.Obj().Name())
-	typeParams := recvElemType.TypeParams()
+	buf.WriteString(recvNamed.Obj().Name())
+	typeParams := recvNamed.TypeParams()
 	if typeParamsLen := typeParams.Len(); typeParamsLen > 0 {
 		buf.WriteByte('[')
 		for i := 0; i < typeParamsLen; i++ {
@@ -73,11 +73,6 @@ func receiverTypeOf(recvType types.Type) string {
 				buf.WriteByte(',')
 			}
 			p := typeParams.At(i)
-			if p == nil {
-				// Just in case
-				buf.WriteString("nil")
-				continue
-			}
 			buf.WriteString(p.Obj().Name())
 		}
 		buf.WriteByte(']')
