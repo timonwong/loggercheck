@@ -3,19 +3,14 @@ package rules
 import (
 	"errors"
 	"testing"
+	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type brokenIOReader struct{}
-
-func (*brokenIOReader) Read(p []byte) (n int, err error) {
-	return 0, errors.New("broken IO")
-}
-
 func TestParseRuleFile_IOError(t *testing.T) {
-	r := &brokenIOReader{}
+	r := iotest.ErrReader(errors.New("broken IO"))
 	_, err := ParseRuleFile(r)
 	assert.EqualError(t, err, "broken IO")
 }

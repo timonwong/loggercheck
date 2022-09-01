@@ -57,6 +57,14 @@ func TestLinter(t *testing.T) {
 			},
 		},
 		{
+			name:     "custom-generic",
+			patterns: "a/custom-generic",
+			flags: []string{
+				"-rulefile",
+				"testdata/custom-rules-generic.txt",
+			},
+		},
+		{
 			name:     "wrong-rules",
 			patterns: "a/customonly",
 			flags: []string{
