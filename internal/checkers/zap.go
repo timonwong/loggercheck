@@ -11,19 +11,10 @@ type Zap struct {
 	General
 }
 
-func (z Zap) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) []ast.Expr {
-	args := call.Expr.Args
-	params := call.Signature.Params()
-
-	nparams := params.Len() // variadic => nonzero
-	startIndex := nparams - 1
-	nargs := len(args)
-
+func (z Zap) FilterKeyAndValues(pass *analysis.Pass, keyAndValues []ast.Expr) []ast.Expr {
 	// Check the argument count
-	keyValuesArgs := make([]ast.Expr, 0, nargs-startIndex)
-	for i := startIndex; i < nargs; i++ {
-		arg := args[i]
-
+	filtered := make([]ast.Expr, 0, len(keyAndValues))
+	for _, arg := range keyAndValues {
 		// Skip any zapcore.Field we found
 		switch arg := arg.(type) {
 		case *ast.CallExpr, *ast.Ident:
@@ -42,9 +33,10 @@ func (z Zap) ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) 
 			}
 		}
 
-		keyValuesArgs = append(keyValuesArgs, arg)
+		filtered = append(filtered, arg)
 	}
-	return keyValuesArgs
+
+	return filtered
 }
 
 var _ Checker = (*Zap)(nil)
