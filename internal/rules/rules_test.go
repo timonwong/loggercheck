@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"go/types"
 	"testing"
 	"testing/iotest"
 
@@ -83,4 +84,11 @@ func TestParseFuncRule(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReceiverTypeOf_InvalidType(t *testing.T) {
+	t.Parallel()
+
+	basicType := types.Universe.Lookup("byte").Type()
+	assert.Equal(t, "", receiverTypeOf(basicType))
 }

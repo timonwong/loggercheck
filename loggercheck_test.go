@@ -1,7 +1,6 @@
 package loggercheck_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ func TestLinter(t *testing.T) {
 		name      string
 		patterns  string
 		flags     []string
-		wantError error
+		wantError string
 	}{
 		{
 			name:     "all",
@@ -71,7 +70,16 @@ func TestLinter(t *testing.T) {
 				"-rulefile",
 				"testdata/wrong-rules.txt",
 			},
-			wantError: rules.ErrInvalidRule,
+			wantError: rules.ErrInvalidRule.Error(),
+		},
+		{
+			name:     "not-found-rules",
+			patterns: "a/customonly",
+			flags: []string{
+				"-rulefile",
+				"testdata/xxxxx-wrong-rules-xxxxx.txt",
+			},
+			wantError: "failed to open rule file",
 		},
 	}
 
@@ -83,16 +91,16 @@ func TestLinter(t *testing.T) {
 			require.NoError(t, err)
 
 			var result []*analysistest.Result
-			if tc.wantError != nil {
+			if tc.wantError != "" {
 				result = analysistest.Run(&dummyTestingErrorf{t}, testdata, a, tc.patterns)
 			} else {
 				result = analysistest.Run(t, testdata, a, tc.patterns)
 			}
 			require.Len(t, result, 1)
 
-			if tc.wantError != nil {
+			if tc.wantError != "" {
 				assert.Error(t, result[0].Err)
-				assert.True(t, errors.Is(result[0].Err, tc.wantError))
+				assert.ErrorContains(t, result[0].Err, tc.wantError)
 			}
 		})
 	}
@@ -117,11 +125,25 @@ func TestOptions(t *testing.T) {
 		"a/customonly.With",
 	}
 
+	wrongCustomRules := []string{
+		"# Wrong rule file",
+		"(*a/wrong.Method.Rule",
+	}
+
 	testCases := []struct {
-		name     string
-		options  []loggercheck.Option
-		patterns string
+		name      string
+		options   []loggercheck.Option
+		patterns  string
+		wantError string
 	}{
+		{
+			name: "wrong-rules",
+			options: []loggercheck.Option{
+				loggercheck.WithRules(wrongCustomRules),
+			},
+			patterns:  "a/customonly",
+			wantError: "failed to parse rules: ",
+		},
 		{
 			name: "disable-all-then-enable-mylogger",
 			options: []loggercheck.Option{
@@ -158,7 +180,19 @@ func TestOptions(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			a := loggercheck.NewAnalyzer(tc.options...)
-			analysistest.Run(t, testdata, a, tc.patterns)
+
+			var result []*analysistest.Result
+			if tc.wantError != "" {
+				result = analysistest.Run(&dummyTestingErrorf{t}, testdata, a, tc.patterns)
+			} else {
+				result = analysistest.Run(t, testdata, a, tc.patterns)
+			}
+			require.Len(t, result, 1)
+
+			if tc.wantError != "" {
+				assert.Error(t, result[0].Err)
+				assert.ErrorContains(t, result[0].Err, tc.wantError)
+			}
 		})
 	}
 }

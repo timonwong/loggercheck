@@ -43,7 +43,43 @@ func (rs *Ruleset) Match(fn *types.Func) bool {
 	return false
 }
 
-func emptyQualifier(*types.Package) string { return "" }
+func receiverTypeOf(recvType types.Type) string {
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+
+	var recvNamed *types.Named
+	switch recvType := recvType.(type) {
+	case *types.Pointer:
+		buf.WriteByte('*')
+		if elem, ok := recvType.Elem().(*types.Named); ok {
+			recvNamed = elem
+		}
+	case *types.Named:
+		recvNamed = recvType
+	}
+
+	if recvNamed == nil {
+		// not supported type
+		return ""
+	}
+
+	buf.WriteString(recvNamed.Obj().Name())
+	typeParams := recvNamed.TypeParams()
+	if typeParamsLen := typeParams.Len(); typeParamsLen > 0 {
+		buf.WriteByte('[')
+		for i := 0; i < typeParamsLen; i++ {
+			if i > 0 {
+				// comma as separator
+				buf.WriteByte(',')
+			}
+			p := typeParams.At(i)
+			buf.WriteString(p.Obj().Name())
+		}
+		buf.WriteByte(']')
+	}
+
+	return buf.String()
+}
 
 func matchRule(p *FuncRule, sig *types.Signature) bool {
 	// we do not check package import here since it's already checked in Match()
@@ -55,10 +91,8 @@ func matchRule(p *FuncRule, sig *types.Signature) bool {
 
 	if isReceiver {
 		recvType := recv.Type()
-		recvTypeBuf := bytebufferpool.Get()
-		defer bytebufferpool.Put(recvTypeBuf)
-		types.WriteType(recvTypeBuf, recvType, emptyQualifier)
-		if recvTypeBuf.String() != p.ReceiverType {
+		receiverType := receiverTypeOf(recvType)
+		if receiverType != p.ReceiverType {
 			return false
 		}
 	}
