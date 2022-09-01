@@ -19,7 +19,7 @@ func (g General) FilterKeyAndValues(_ *analysis.Pass, keyAndValues []ast.Expr) [
 func (g General) CheckLoggingKey(pass *analysis.Pass, keyAndValues []ast.Expr) {
 	for i := 0; i < len(keyAndValues); i += 2 {
 		arg := keyAndValues[i]
-		if value, ok := getStringValueFromArg(pass, arg); ok {
+		if value, ok := extractValueFromStringArg(pass, arg); ok {
 			if stringutil.IsASCII(value) {
 				continue
 			}
@@ -45,9 +45,9 @@ func (g General) CheckLoggingKey(pass *analysis.Pass, keyAndValues []ast.Expr) {
 	}
 }
 
-func (g General) CheckPrintfLikeSpecifier(pass *analysis.Pass, messageArgs []ast.Expr) {
-	for _, arg := range messageArgs {
-		format, ok := getStringValueFromArg(pass, arg)
+func (g General) CheckPrintfLikeSpecifier(pass *analysis.Pass, args []ast.Expr) {
+	for _, arg := range args {
+		format, ok := extractValueFromStringArg(pass, arg)
 		if !ok {
 			continue
 		}

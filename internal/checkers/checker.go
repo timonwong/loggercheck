@@ -21,7 +21,7 @@ type CallContext struct {
 type Checker interface {
 	FilterKeyAndValues(pass *analysis.Pass, keyAndValues []ast.Expr) []ast.Expr
 	CheckLoggingKey(pass *analysis.Pass, keyAndValues []ast.Expr)
-	CheckPrintfLikeSpecifier(pass *analysis.Pass, messageArgs []ast.Expr)
+	CheckPrintfLikeSpecifier(pass *analysis.Pass, args []ast.Expr)
 }
 
 func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config) {
@@ -53,7 +53,7 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 	}
 
 	if cfg.NoPrintfLike {
-		// We only check potential message args
-		c.CheckPrintfLikeSpecifier(pass, call.Expr.Args[:startIndex])
+		// Check all args
+		c.CheckPrintfLikeSpecifier(pass, call.Expr.Args)
 	}
 }
