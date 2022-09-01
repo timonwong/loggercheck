@@ -1,2 +1,2 @@
 # Generic methods
-(*a/custom-generic.Logger[any]).Infow
+(*a/custom-generic.Logger[T,W]).Infow
