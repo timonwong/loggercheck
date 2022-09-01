@@ -19,13 +19,23 @@ type CallContext struct {
 }
 
 type Checker interface {
-	ExtractLoggingKeyAndValues(pass *analysis.Pass, call *CallContext) []ast.Expr
-	CheckLoggingKey(pass *analysis.Pass, keyValuesArgs []ast.Expr)
+	FilterKeyAndValues(pass *analysis.Pass, keyAndValues []ast.Expr) []ast.Expr
+	CheckLoggingKey(pass *analysis.Pass, keyAndValues []ast.Expr)
 	CheckPrintfLikeSpecifier(pass *analysis.Pass, messageArgs []ast.Expr)
 }
 
-func ExecuteChecker(c Checker, pass *analysis.Pass, call *CallContext, cfg Config) {
-	keyValuesArgs := c.ExtractLoggingKeyAndValues(pass, call)
+func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config) {
+	params := call.Signature.Params()
+	nparams := params.Len() // variadic => nonzero
+	startIndex := nparams - 1
+
+	lastArg := params.At(nparams - 1)
+	iface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Interface)
+	if !ok || !iface.Empty() {
+		return // final (args) param is not ...interface{}
+	}
+
+	keyValuesArgs := c.FilterKeyAndValues(pass, call.Expr.Args[startIndex:])
 
 	if len(keyValuesArgs)%2 != 0 {
 		firstArg := keyValuesArgs[0]
@@ -43,6 +53,7 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call *CallContext, cfg Confi
 	}
 
 	if cfg.NoPrintfLike {
-		c.CheckPrintfLikeSpecifier(pass, call.Expr.Args)
+		// We only check potential message args
+		c.CheckPrintfLikeSpecifier(pass, call.Expr.Args[:startIndex])
 	}
 }

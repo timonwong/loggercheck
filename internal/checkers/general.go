@@ -12,20 +12,13 @@ import (
 
 type General struct{}
 
-func (g General) ExtractLoggingKeyAndValues(_ *analysis.Pass, call *CallContext) []ast.Expr {
-	args := call.Expr.Args
-	params := call.Signature.Params()
-
-	nparams := params.Len() // variadic => nonzero
-	startIndex := nparams - 1
-
-	// Check the argument count
-	return args[startIndex:]
+func (g General) FilterKeyAndValues(_ *analysis.Pass, keyAndValues []ast.Expr) []ast.Expr {
+	return keyAndValues
 }
 
-func (g General) CheckLoggingKey(pass *analysis.Pass, keyValuesArgs []ast.Expr) {
-	for i := 0; i < len(keyValuesArgs); i += 2 {
-		arg := keyValuesArgs[i]
+func (g General) CheckLoggingKey(pass *analysis.Pass, keyAndValues []ast.Expr) {
+	for i := 0; i < len(keyAndValues); i += 2 {
+		arg := keyAndValues[i]
 		if value, ok := getStringValueFromArg(pass, arg); ok {
 			if stringutil.IsASCII(value) {
 				continue

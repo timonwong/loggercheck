@@ -115,7 +115,7 @@ func (l *loggercheck) checkLoggerArguments(pass *analysis.Pass, call *ast.CallEx
 		return
 	}
 
-	checkers.ExecuteChecker(checker, pass, &checkers.CallContext{
+	checkers.ExecuteChecker(checker, pass, checkers.CallContext{
 		Expr:      call,
 		Func:      fn,
 		Signature: sig,
