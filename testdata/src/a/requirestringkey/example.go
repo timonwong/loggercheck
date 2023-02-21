@@ -5,7 +5,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"go.uber.org/zap"
+
+	"a/requirestringkey/otherpkg"
 )
+
+const LocalKey1Str = "value1"
 
 func ExampleRequireStringKey() {
 	err := fmt.Errorf("error")
@@ -31,6 +35,9 @@ func ExampleRequireStringKey() {
 
 	const Key1Str = "key1"
 	log.Error(err, "message", Key1Str, "value1")
+	log.Error(err, "message", LocalKey1Str, "value1")
+	log.Error(err, "message", OtherFileKey1Str, "value1")
+	log.Error(err, "message", otherpkg.KeyStr, "value1")
 
 	log.Error(err, "message", "键1", "value1") // want `logging keys are expected to be alphanumeric strings, please remove any non-latin characters from "键1"`
 	const KeyNonASCII = "键1"
