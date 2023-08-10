@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
 
 	kitlog "github.com/go-kit/log"
 	"github.com/go-logr/logr"
@@ -110,4 +112,23 @@ func ExampleGokitLog() {
 
 	kitlog.With(logger, "key1", "value1").Log("msg", "message")
 	kitlog.With(logger, "key1").Log("msg", "message") // want `odd number of arguments passed as key-value pairs for logging`
+}
+
+func ExampleSlog() {
+	logger := slog.With("key1", "value1")
+
+	slog.Info("msg", "key1", "value1")
+	logger.Info("msg", "key1", "value1")
+	logger.Info("msg", "key1")                        // want `odd number of arguments passed as key-value pairs for logging`
+	slog.Info("msg", "key1")                          // want `odd number of arguments passed as key-value pairs for logging`
+	logger.InfoContext(context.TODO(), "msg", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	slog.With("key1", "value1").Info("msg")
+	slog.With("key1", "value1").Info("msg", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	slog.Info("with group ok", "key1", "value1", slog.Group("group_val_key", "gkey1", "gvalue1", "gkey2", "gvalue2"))
+	slog.Info("with group missing val", "key1", "value1", slog.Group("group_val_key", "gkey1", "gvalue1", "gkey2")) // want `odd number of arguments passed as key-value pairs for logging`
+
+	slog.Info("with attributes", slog.Time("time", time.Now()), slog.String("method", "POST"), slog.Int("status", 301))
+	slog.Info("with attributes missing val", slog.Time("time", time.Now()), slog.String("method", "POST"), slog.Int("status", 301), "key_only") // want `odd number of arguments passed as key-value pairs for logging`
 }
