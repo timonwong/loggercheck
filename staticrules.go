@@ -40,6 +40,8 @@ var (
 			"(github.com/go-kit/log.Logger).Log",
 		}),
 		mustNewStaticRuleSet("slog", []string{
+			"log/slog.Group",
+
 			"log/slog.With",
 
 			"log/slog.Debug",
@@ -67,7 +69,8 @@ var (
 	}
 	checkerByRulesetName = map[string]checkers.Checker{
 		// by default, checkers.General will be used.
-		"zap": checkers.Zap{},
+		"zap":  checkers.Zap{},
+		"slog": checkers.Slog{},
 	}
 )
 

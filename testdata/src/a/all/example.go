@@ -124,4 +124,7 @@ func ExampleSlog() {
 
 	slog.With("key1", "value1").Info("msg")
 	slog.With("key1", "value1").Info("msg", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	slog.Info("with group ok", "key1", "value1", slog.Group("group_val_key", "gkey1", "gvalue1", "gkey2", "gvalue2"))
+	slog.Info("with group missing val", "key1", "value1", slog.Group("group_val_key", "gkey1", "gvalue1", "gkey2")) // want `odd number of arguments passed as key-value pairs for logging`
 }
