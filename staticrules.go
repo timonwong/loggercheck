@@ -41,7 +41,7 @@ var (
 		}),
 		mustNewStaticRuleSet("slog", []string{
 			"log/slog.With",
-			
+
 			"log/slog.Debug",
 			"log/slog.Info",
 			"log/slog.Warn",
