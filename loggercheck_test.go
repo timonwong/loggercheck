@@ -15,7 +15,7 @@ type dummyTestingErrorf struct {
 	*testing.T
 }
 
-func (t dummyTestingErrorf) Errorf(format string, args ...interface{}) {}
+func (t dummyTestingErrorf) Errorf(_ string, _ ...interface{}) {}
 
 func TestLinter(t *testing.T) {
 	testdata := analysistest.TestData()
