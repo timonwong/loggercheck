@@ -7,6 +7,7 @@ A linter checks the odd number of key and value pairs for common logger librarie
 - [klog](https://github.com/kubernetes/klog)
 - [logr](https://github.com/go-logr/logr)
 - [zap](https://github.com/uber-go/zap)
+- [log/slog](https://pkg.go.dev/log/slog)
 
 It's recommended to use loggercheck with [golangci-lint](https://golangci-lint.run/usage/linters/#loggercheck).
 
