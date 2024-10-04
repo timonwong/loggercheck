@@ -114,6 +114,8 @@ func ExampleGokitLog() {
 	kitlog.With(logger, "key1").Log("msg", "message") // want `odd number of arguments passed as key-value pairs for logging`
 }
 
+// todo: groups not correctly filtered out as it stands
+// todo: attrs not correctly filtered out as it stands
 func ExampleSlog() {
 	logger := slog.With("key1", "value1")
 
