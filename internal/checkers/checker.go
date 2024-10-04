@@ -3,6 +3,7 @@ package checkers
 import (
 	"go/ast"
 	"go/types"
+
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -30,7 +31,7 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 
 	lastArg := params.At(nparams - 1)
 	if iface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Interface); !ok {
-		aface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Alias) //slog uses any - an Alias not strictly an interface
+		aface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Alias) // slog uses any - an Alias not strictly an interface
 		if !ok || !aface.Underlying().(*types.Interface).Empty() {
 			return // final (args) param is not ...interface{}
 		}
