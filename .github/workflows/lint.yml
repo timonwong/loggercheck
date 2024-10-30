@@ -15,12 +15,9 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.23'
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v3.7.0
+      uses: golangci/golangci-lint-action@v6.1.1
       with:
-        version: v1.54.0
-        # skip cache becausez of flaky behaviors
-        skip-build-cache: true
-        skip-pkg-cache: true
+        version: latest
