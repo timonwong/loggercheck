@@ -30,12 +30,7 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 	startIndex := nparams - 1
 
 	lastArg := params.At(nparams - 1)
-	if iface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Interface); !ok {
-		aface, ok := lastArg.Type().(*types.Slice).Elem().(*types.Alias) // slog uses any - an Alias not strictly an interface
-		if !ok || !aface.Underlying().(*types.Interface).Empty() {
-			return // final (args) param is not ...interface{}
-		}
-	} else if !iface.Empty() {
+	if !isTypeVariadicEmptyInterface(lastArg.Type()) {
 		return // final (args) param is not ...interface{}
 	}
 
