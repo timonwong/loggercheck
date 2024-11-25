@@ -18,7 +18,7 @@ import (
 	"github.com/timonwong/loggercheck/internal/sets"
 )
 
-const Doc = `Checks key value pairs for common logger libraries (kitlog,klog,logr,zap).`
+const Doc = `Checks key value pairs for common logger libraries (kitlog,klog,logr,slog,zap).`
 
 func NewAnalyzer(opts ...Option) *analysis.Analyzer {
 	l := newLoggerCheck(opts...)
@@ -54,7 +54,7 @@ func newLoggerCheck(opts ...Option) *loggercheck {
 	}
 
 	fs.StringVar(&l.ruleFile, "rulefile", "", "path to a file contains a list of rules")
-	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,zap,slog)")
+	fs.Var(&l.disable, "disable", "comma-separated list of disabled logger checker (kitlog,klog,logr,slog,zap)")
 	fs.BoolVar(&l.requireStringKey, "requirestringkey", false, "require all logging keys to be inlined constant strings")
 	fs.BoolVar(&l.noPrintfLike, "noprintflike", false, "require printf-like format specifier not present in args")
 
