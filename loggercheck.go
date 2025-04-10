@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"os"
 	"strings"
+	"sync"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -40,9 +41,11 @@ type loggercheck struct {
 	requireStringKey bool           // flag -requirestringkey
 	noPrintfLike     bool           // flag -noprintflike
 
-	rules                  []string         // used for external integration, for example golangci-lint
-	rulesetList            []rules.Ruleset  // populate at runtime
-	rulesetIndicesByImport map[string][]int // ruleset index, populate at runtime
+	rules       []string        // used for external integration, for example golangci-lint
+	rulesetList []rules.Ruleset // populate at runtime
+
+	rulesetIndicesByImportMu sync.Mutex
+	rulesetIndicesByImport   map[string][]int // ruleset index, populate at runtime
 }
 
 func newLoggerCheck(opts ...Option) *loggercheck {
@@ -85,7 +88,10 @@ func (l *loggercheck) getCheckerForFunc(fn *types.Func) checkers.Checker {
 	}
 
 	pkgPath := vendorLessPath(pkg.Path())
+
+	l.rulesetIndicesByImportMu.Lock()
 	indices := l.rulesetIndicesByImport[pkgPath]
+	l.rulesetIndicesByImportMu.Unlock()
 
 	for _, idx := range indices {
 		rs := &l.rulesetList[idx]
@@ -165,7 +171,10 @@ func (l *loggercheck) processConfig() error {
 	for i, rs := range l.rulesetList {
 		indices[rs.PackageImport] = append(indices[rs.PackageImport], i)
 	}
+
+	l.rulesetIndicesByImportMu.Lock()
 	l.rulesetIndicesByImport = indices
+	l.rulesetIndicesByImportMu.Unlock()
 
 	return nil
 }
