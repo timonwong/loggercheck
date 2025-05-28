@@ -57,7 +57,7 @@ func (g General) CheckPrintfLikeSpecifier(pass *analysis.Pass, args []ast.Expr) 
 				Pos:      arg.Pos(),
 				End:      arg.End(),
 				Category: DiagnosticCategory,
-				Message:  fmt.Sprintf("logging message should not use format specifier %q", specifier),
+				Message:  fmt.Sprintf("logging message should not contain format specifiers, found %q", specifier),
 			})
 
 			return // One error diagnostic is enough
