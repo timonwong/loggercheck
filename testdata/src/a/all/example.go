@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/gemalto/flume"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-logr/logr"
 	"go.uber.org/zap"
@@ -131,4 +132,20 @@ func ExampleSlog() {
 
 	slog.Info("with attributes", slog.Time("time", time.Now()), slog.String("method", "POST"), slog.Int("status", 301))
 	slog.Info("with attributes missing val", slog.Time("time", time.Now()), slog.String("method", "POST"), slog.Int("status", 301), "key_only") // want `odd number of arguments passed as key-value pairs for logging`
+}
+
+func ExampleFlume() {
+	log := flume.New("mypkg")
+
+	log.Debug("msg", "key1", "value1")
+	log.Debug("msg", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	log.Error("msg", "key1", "value1")
+	log.Error("msg", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
+
+	log.Info("msg", "key1", "value1")
+	log.Info("msg", "key1") // want `odd number of arguments passed as key-value pairs for logging`
+
+	log.With("key1", "value1").Info("msg", "key2", "value2")
+	log.With("key1").Info("msg", "key2", "value2") // want `odd number of arguments passed as key-value pairs for logging`
 }
