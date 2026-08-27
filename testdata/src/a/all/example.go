@@ -13,6 +13,43 @@ import (
 	"k8s.io/klog/v2"
 )
 
+type valueStringer struct{}
+
+func (valueStringer) String() string { return "value" }
+
+type pointerStringer struct{}
+
+func (*pointerStringer) String() string { return "pointer" }
+
+type interfaceStringer interface {
+	String() string
+}
+
+type embeddedStringer struct {
+	time.Time
+}
+
+func ExampleStringerValues() {
+	var value *valueStringer
+	var pointer *pointerStringer
+	var embedded *embeddedStringer
+	var ordinary *int
+	var pointerToInterface *interfaceStringer
+
+	log := logr.Discard()
+	log.Info("value receiver", "value", value) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	log.Info("pointer receiver", "value", pointer)
+	log.Info("promoted receiver", "value", embedded) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	log.Info("ordinary pointer", "value", ordinary)
+	log.Info("non-pointer stringer", "value", valueStringer{})
+	log.Info("pointer to interface", "value", pointerToInterface)
+
+	klog.InfoS("value receiver", "value", value)    // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	zap.S().Infow("value receiver", "value", value) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	slog.Info("value receiver", "value", value)     // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	kitlog.NewNopLogger().Log("value", value)       // want `logging value may panic when nil because its element type implements fmt.Stringer`
+}
+
 func ExampleInvalid() {
 	// function pointer is not supported
 

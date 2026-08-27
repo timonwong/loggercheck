@@ -7,6 +7,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
+type valueStringer struct{}
+
+func (valueStringer) String() string { return "value" }
+
 func logrIgnored() {
 	err := fmt.Errorf("error")
 
@@ -20,6 +24,8 @@ func logrIgnored() {
 func ExampleCustomLogger() {
 	err := errors.New("example error")
 
+	var valueStringerPtr *valueStringer
+
 	// custom SugaredLogger
 	log := New()
 	defer log.Sync()
@@ -28,6 +34,7 @@ func ExampleCustomLogger() {
 	log.XXXDebugw("message", "key1")
 
 	log.Infow("abc", "key1", "value1")
+	log.Infow("abc", "key1", valueStringerPtr) // want `logging value may panic when nil because its element type implements fmt.Stringer`
 	log.Infow("abc", "key1", "value1", "key2") // want `odd number of arguments passed as key-value pairs for logging`
 
 	log.Errorw("message", "err", err, "key1", "value1")
