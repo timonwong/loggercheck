@@ -67,6 +67,13 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 	nparams := params.Len() // variadic => nonzero
 	startIndex := nparams - 1
 
+	if len(call.Expr.Args) < startIndex {
+		// A multi-valued expression may expand to multiple arguments, but its
+		// individual values cannot be represented by separate AST expressions.
+		// Skip calls whose syntactic arguments cannot cover the fixed params.
+		return
+	}
+
 	iface, ok := types.Unalias(params.At(startIndex).Type().(*types.Slice).Elem()).(*types.Interface)
 	if !ok || !iface.Empty() {
 		return // final (args) param is not ...interface{}

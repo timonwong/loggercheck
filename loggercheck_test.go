@@ -64,6 +64,21 @@ func TestLinter(t *testing.T) {
 			},
 		},
 		{
+			name:     "issue-108-multi-valued-helper",
+			patterns: "a/issue108",
+			flags:    []string{"-disable="},
+		},
+		{
+			name:     "issue-108-multi-valued-helper-require-string-key",
+			patterns: "a/issue108",
+			flags:    []string{"-disable=", "-requirestringkey"},
+		},
+		{
+			name:     "issue-108-multi-valued-helper-no-printf-like",
+			patterns: "a/issue108",
+			flags:    []string{"-disable=", "-noprintflike"},
+		},
+		{
 			name:     "wrong-rules",
 			patterns: "a/customonly",
 			flags: []string{
