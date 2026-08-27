@@ -66,6 +66,12 @@ var (
 			"(*log/slog.Logger).WarnContext",
 			"(*log/slog.Logger).ErrorContext",
 		}),
+		mustNewStaticRuleSet("flume", []string{
+			"(github.com/gemalto/flume.Logger).Debug",
+			"(github.com/gemalto/flume.Logger).Error",
+			"(github.com/gemalto/flume.Logger).Info",
+			"(github.com/gemalto/flume.Logger).With",
+		}),
 	}
 	checkerByRulesetName = map[string]checkers.Checker{
 		// by default, checkers.General will be used.
