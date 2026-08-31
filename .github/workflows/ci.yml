@@ -26,7 +26,7 @@ jobs:
       - name: Test
         run: make test
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           files: cover.out
           fail_ci_if_error: true
