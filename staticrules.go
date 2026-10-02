@@ -6,6 +6,7 @@ import (
 
 	"github.com/timonwong/loggercheck/internal/checkers"
 	"github.com/timonwong/loggercheck/internal/rules"
+	"github.com/timonwong/loggercheck/internal/sets"
 )
 
 var (
@@ -72,6 +73,10 @@ var (
 		"zap":  checkers.Zap{},
 		"slog": checkers.Slog{},
 	}
+	// Other sinks (zap, slog, go-kit, fmt) render a nil pointer without
+	// calling its value-receiver String, so only these surface a
+	// "<panic: ...>" placeholder in the output.
+	nilStringerRulesetNames = sets.NewString("klog", "logr")
 )
 
 // mustNewStaticRuleSet only called at init, catch errors during development.
