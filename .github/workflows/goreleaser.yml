@@ -1,0 +1,39 @@
+name: GoReleaser
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Existing release tag to build and upload assets for
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and upload assets for (e.g. v0.13.0)
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

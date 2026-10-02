@@ -7,6 +7,7 @@ release:
   github:
     owner: timonwong
     name: loggercheck
+  mode: keep-existing
 
 builds:
   - binary: loggercheck
@@ -50,15 +51,4 @@ checksum:
   name_template: 'checksums.txt'
 
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '(?i)^docs?:'
-      - '(?i)^docs\([^:]+\):'
-      - '(?i)^docs\[[^:]+\]:'
-      - '^tests?:'
-      - '(?i)^dev:'
-      - '^build\(deps\): bump .* in /docs \(#\d+\)'
-      - '^build\(deps\): bump .* in /\.github/peril \(#\d+\)'
-      - Merge pull request
-      - Merge branch
+  disable: true
