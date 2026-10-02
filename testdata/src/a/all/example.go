@@ -44,10 +44,12 @@ func ExampleStringerValues() {
 	log.Info("non-pointer stringer", "value", valueStringer{})
 	log.Info("pointer to interface", "value", pointerToInterface)
 
-	klog.InfoS("value receiver", "value", value)    // want `logging value may panic when nil because its element type implements fmt.Stringer`
-	zap.S().Infow("value receiver", "value", value) // want `logging value may panic when nil because its element type implements fmt.Stringer`
-	slog.Info("value receiver", "value", value)     // want `logging value may panic when nil because its element type implements fmt.Stringer`
-	kitlog.NewNopLogger().Log("value", value)       // want `logging value may panic when nil because its element type implements fmt.Stringer`
+	klog.InfoS("value receiver", "value", value) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+
+	// These loggers render a nil pointer's String panic as <nil> or null.
+	zap.S().Infow("value receiver", "value", value)
+	slog.Info("value receiver", "value", value)
+	kitlog.NewNopLogger().Log("value", value)
 }
 
 func ExampleInvalid() {
