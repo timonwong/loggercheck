@@ -6,6 +6,8 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/analysis"
+
+	"github.com/timonwong/loggercheck/internal/nilness"
 )
 
 type Config struct {
@@ -18,6 +20,8 @@ type CallContext struct {
 	Expr      *ast.CallExpr
 	Func      *types.Func
 	Signature *types.Signature
+	// Nilness is optional; without it every candidate value is reported.
+	Nilness *nilness.Index
 }
 
 type Checker interface {
@@ -40,7 +44,7 @@ var stringerType = func() *types.Interface {
 	return iface
 }()
 
-func checkStringerValues(pass *analysis.Pass, keyAndValues []ast.Expr) {
+func checkStringerValues(pass *analysis.Pass, call CallContext, keyAndValues []ast.Expr) {
 	for i := 1; i < len(keyAndValues); i += 2 {
 		arg := keyAndValues[i]
 		typ := types.Unalias(pass.TypesInfo.TypeOf(arg))
@@ -54,6 +58,10 @@ func checkStringerValues(pass *analysis.Pass, keyAndValues []ast.Expr) {
 			continue
 		}
 
+		if call.Nilness.NonNilVariadicArg(call.Expr, argIndex(call.Expr, arg)) {
+			continue
+		}
+
 		pass.Report(analysis.Diagnostic{
 			Pos:      arg.Pos(),
 			End:      arg.End(),
@@ -61,6 +69,15 @@ func checkStringerValues(pass *analysis.Pass, keyAndValues []ast.Expr) {
 			Message:  "logging value may panic when nil because its element type implements fmt.Stringer",
 		})
 	}
+}
+
+func argIndex(call *ast.CallExpr, arg ast.Expr) int {
+	for i, a := range call.Args {
+		if a == arg {
+			return i
+		}
+	}
+	return -1
 }
 
 func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config) {
@@ -98,7 +115,7 @@ func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config
 	}
 
 	if cfg.NilStringer {
-		checkStringerValues(pass, keyValuesArgs)
+		checkStringerValues(pass, call, keyValuesArgs)
 	}
 
 	if cfg.NoPrintfLike {

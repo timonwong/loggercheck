@@ -120,6 +120,10 @@ func TestLinter(t *testing.T) {
 	}
 }
 
+func TestStringerNilness(t *testing.T) {
+	analysistest.Run(t, analysistest.TestData(), loggercheck.NewAnalyzer(), "a/nilness")
+}
+
 func TestOptions(t *testing.T) {
 	testdata := analysistest.TestData()
 
