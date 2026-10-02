@@ -73,9 +73,9 @@ var (
 		"zap":  checkers.Zap{},
 		"slog": checkers.Slog{},
 	}
-	// Other sinks (zap, slog, go-kit, fmt) render a nil pointer without
-	// calling its value-receiver String, so only these surface a
-	// "<panic: ...>" placeholder in the output.
+	// zap, slog and go-kit recover the nil-pointer panic from String and
+	// render "<nil>" or "null"; klog and logr's funcr render a
+	// "<panic: ...>" placeholder instead.
 	nilStringerRulesetNames = sets.NewString("klog", "logr")
 )
 

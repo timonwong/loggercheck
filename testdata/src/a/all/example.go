@@ -46,7 +46,7 @@ func ExampleStringerValues() {
 
 	klog.InfoS("value receiver", "value", value) // want `logging value may panic when nil because its element type implements fmt.Stringer`
 
-	// These loggers render nil pointers without invoking String.
+	// These loggers render a nil pointer's String panic as <nil> or null.
 	zap.S().Infow("value receiver", "value", value)
 	slog.Info("value receiver", "value", value)
 	kitlog.NewNopLogger().Log("value", value)
