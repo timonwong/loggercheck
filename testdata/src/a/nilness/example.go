@@ -25,6 +25,14 @@ type NamespacedName struct {
 
 func (n NamespacedName) String() string { return n.Namespace + "/" + n.Name }
 
+// ConvertedTime shares its underlying type with Time, so converting between
+// their pointer types is an SSA ChangeType.
+type ConvertedTime Time
+
+type Pair [2]string
+
+func (p Pair) String() string { return p[0] + "=" + p[1] }
+
 type CertificateStatus struct {
 	NotAfter    *Time
 	RenewalTime *Time
@@ -252,6 +260,23 @@ func loadBeforeLog(log logr.Logger, p *NamespacedName) {
 	log.Info("after load", "name", p)
 }
 
+func storeBeforeLog(log logr.Logger, p *NamespacedName) {
+	*p = NamespacedName{Name: "x"}
+	log.Info("after store", "name", p)
+}
+
+func indexBeforeLog(log logr.Logger, p *Pair) {
+	_ = p[0]
+	log.Info("after index", "pair", p)
+}
+
+func derefDominating(log logr.Logger, p *NamespacedName, cond bool) {
+	_ = p.Name
+	if cond {
+		log.Info("deref dominates", "name", p)
+	}
+}
+
 func derefNotDominating(log logr.Logger, p *NamespacedName, cond bool) {
 	if cond {
 		_ = p.Name
@@ -262,6 +287,28 @@ func derefNotDominating(log logr.Logger, p *NamespacedName, cond bool) {
 func derefAfterLog(log logr.Logger, p *NamespacedName) string {
 	log.Info("deref after log", "name", p) // want `logging value may panic when nil because its element type implements fmt.Stringer`
 	return p.Name
+}
+
+func convertedPointer(log logr.Logger, p *Time) {
+	if p != nil {
+		log.Info("converted after guard", "time", (*ConvertedTime)(p))
+	}
+	log.Info("converted", "time", (*ConvertedTime)(p)) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+}
+
+// The SSA builder drops unreachable code, so nothing is known about calls in it.
+func unreachableCall(log logr.Logger) {
+	return
+	log.Info("unreachable", "time", &Time{}) // want `logging value may panic when nil because its element type implements fmt.Stringer`
+}
+
+// error.Error is a method of the universe error type, which has no package.
+func universeMethodExpr(log logr.Logger, p *Time) string {
+	if p == nil {
+		return error.Error(errTest)
+	}
+	log.Info("after universe method guard", "time", p)
+	return ""
 }
 
 func phiOfAllocs(log logr.Logger, cond bool) {

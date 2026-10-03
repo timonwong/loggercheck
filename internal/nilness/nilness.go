@@ -62,16 +62,12 @@ func (x *Index) NonNilVariadicArg(call *ast.CallExpr, argIndex int) (nonNil bool
 	if instr == nil {
 		return false // e.g. unreachable code removed by the SSA builder
 	}
-	v := variadicValue(instr, len(call.Args), argIndex)
+	v := variadicValue(instr, argIndex)
 	if v == nil {
 		return false
 	}
-	block, idx := instrPoint(instr)
-	if block == nil {
-		return false
-	}
 	q := query{visiting: make(map[*ssa.Phi]bool)}
-	return q.nonNilAt(v, block, idx, nil)
+	return q.nonNilAt(v, instr.Block(), instr, nil)
 }
 
 // buildCalls returns nil if the SSA builder panics, which it may do on
@@ -178,91 +174,44 @@ func noReturn(fn *types.Func) bool {
 	return false
 }
 
-// variadicValue recovers the operand stored into the implicit varargs array.
-// go/ssa lowers f(a, b...) to
+// variadicValue recovers the operand stored into the implicit varargs array,
+// or returns nil if argIndex is outside the varargs or the argument already
+// is an interface. go/ssa lowers f(a, b...) to
 //
 //	t0 = new [n]any (varargs)
 //	t1 = &t0[i]; store MakeInterface(arg_i) -> t1
 //	t2 = slice t0[:]
 //
 // and gives the stores the operand's own position rather than the syntax
-// position, so arguments are matched by index, not by position.
-func variadicValue(instr ssa.CallInstruction, nSyntaxArgs, argIndex int) ssa.Value {
+// position, so arguments are matched by index, not by position. The type
+// assertions panic, and NonNilVariadicArg recovers, for calls not lowered
+// this way, such as f(xs...).
+func variadicValue(instr ssa.CallInstruction, argIndex int) ssa.Value {
 	common := instr.Common()
-	if len(common.Args) == 0 {
-		return nil
-	}
-	sl, ok := common.Args[len(common.Args)-1].(*ssa.Slice)
-	if !ok {
-		return nil
-	}
-	arr, ok := sl.X.(*ssa.Alloc)
-	if !ok {
-		return nil
-	}
-	ptr, ok := arr.Type().Underlying().(*types.Pointer)
-	if !ok {
-		return nil
-	}
-	at, ok := ptr.Elem().Underlying().(*types.Array)
-	if !ok {
-		return nil
-	}
-	nFixed := common.Signature().Params().Len() - 1
-	if nFixed < 0 || at.Len() != int64(nSyntaxArgs-nFixed) {
-		return nil // multi-valued argument expanded into the varargs
-	}
-	want := int64(argIndex - nFixed)
-	if want < 0 || want >= at.Len() {
-		return nil
-	}
-	return storedOperand(arr, want)
-}
-
-func storedOperand(arr *ssa.Alloc, index int64) ssa.Value {
+	arr := common.Args[len(common.Args)-1].(*ssa.Slice).X.(*ssa.Alloc)
+	want := int64(argIndex - (common.Signature().Params().Len() - 1))
 	for _, ref := range *arr.Referrers() {
 		ia, ok := ref.(*ssa.IndexAddr)
-		if !ok || ia.X != arr {
+		if !ok || ia.Index.(*ssa.Const).Int64() != want {
 			continue
 		}
-		c, ok := ia.Index.(*ssa.Const)
-		if !ok || c.Int64() != index {
-			continue
+		// The element address has a single referrer: the store of the argument.
+		if mi, ok := (*ia.Referrers())[0].(*ssa.Store).Val.(*ssa.MakeInterface); ok {
+			return mi.X
 		}
-		for _, ref2 := range *ia.Referrers() {
-			st, ok := ref2.(*ssa.Store)
-			if !ok || st.Addr != ia {
-				continue
-			}
-			if mi, ok := st.Val.(*ssa.MakeInterface); ok {
-				return mi.X
-			}
-			return nil
-		}
+		break
 	}
 	return nil
-}
-
-func instrPoint(instr ssa.Instruction) (block *ssa.BasicBlock, idx int) {
-	b := instr.Block()
-	if b == nil {
-		return nil, 0
-	}
-	for i, in := range b.Instrs {
-		if in == instr {
-			return b, i
-		}
-	}
-	return nil, 0
 }
 
 type query struct {
 	visiting map[*ssa.Phi]bool
 }
 
-// nonNilAt reports whether v is provably non-nil just before b.Instrs[idx].
-// When edgeTo is non-nil, the point is the end of b on the edge b->edgeTo.
-func (q *query) nonNilAt(v ssa.Value, b *ssa.BasicBlock, idx int, edgeTo *ssa.BasicBlock) bool {
+// nonNilAt reports whether v is provably non-nil just before the instruction
+// at in block b, or at the end of b when at is nil. When edgeTo is non-nil, the
+// point is the end of b on the edge b->edgeTo.
+func (q *query) nonNilAt(v ssa.Value, b *ssa.BasicBlock, at ssa.Instruction, edgeTo *ssa.BasicBlock) bool {
 	switch v := v.(type) {
 	case *ssa.Alloc, *ssa.FieldAddr, *ssa.IndexAddr, *ssa.Global,
 		*ssa.Function, *ssa.MakeClosure:
@@ -278,11 +227,11 @@ func (q *query) nonNilAt(v ssa.Value, b *ssa.BasicBlock, idx int, edgeTo *ssa.Ba
 	if conditionFact(v, b, edgeTo) {
 		return true
 	}
-	if dereferencedBefore(v, b, idx) {
+	if dereferencedBefore(v, b, at) {
 		return true
 	}
 	if ct, ok := v.(*ssa.ChangeType); ok {
-		return q.nonNilAt(ct.X, b, idx, edgeTo)
+		return q.nonNilAt(ct.X, b, at, edgeTo)
 	}
 	return false
 }
@@ -299,7 +248,7 @@ func (q *query) phi(p *ssa.Phi) bool {
 	preds := p.Block().Preds
 	for i, edge := range p.Edges {
 		pred := preds[i]
-		if !q.nonNilAt(edge, pred, len(pred.Instrs), p.Block()) {
+		if !q.nonNilAt(edge, pred, nil, p.Block()) {
 			return false
 		}
 	}
@@ -328,14 +277,11 @@ func conditionFact(v ssa.Value, b, edgeTo *ssa.BasicBlock) bool {
 // branchProvesNonNil reports whether taking the edge from->to implies that v
 // is non-nil.
 func branchProvesNonNil(v ssa.Value, from, to *ssa.BasicBlock) bool {
-	if len(from.Instrs) == 0 || len(from.Succs) != 2 || from.Succs[0] == from.Succs[1] {
+	if len(from.Succs) != 2 || from.Succs[0] == from.Succs[1] {
 		return false
 	}
-	ifInstr, ok := from.Instrs[len(from.Instrs)-1].(*ssa.If)
-	if !ok {
-		return false
-	}
-	binop, ok := ifInstr.Cond.(*ssa.BinOp)
+	// Only an If gives a block two successors.
+	binop, ok := from.Instrs[len(from.Instrs)-1].(*ssa.If).Cond.(*ssa.BinOp)
 	if !ok || (binop.Op != token.EQL && binop.Op != token.NEQ) {
 		return false
 	}
@@ -357,20 +303,20 @@ func isNilConst(v ssa.Value) bool {
 }
 
 // dereferencedBefore reports whether an instruction that panics on a nil v
-// dominates the point, so v cannot be nil once the point is reached.
-func dereferencedBefore(v ssa.Value, b *ssa.BasicBlock, idx int) bool {
-	refs := v.Referrers()
-	if refs == nil {
-		return false
-	}
-	for _, ref := range *refs {
+// dominates the point, so v cannot be nil once the point is reached. Values
+// without referrers, such as constants and globals, never reach it.
+func dereferencedBefore(v ssa.Value, b *ssa.BasicBlock, at ssa.Instruction) bool {
+	for _, ref := range *v.Referrers() {
 		if !derefs(ref, v) {
 			continue
 		}
 		rb := ref.Block()
 		if rb == b {
-			for i := 0; i < idx && i < len(b.Instrs); i++ {
-				if b.Instrs[i] == ref {
+			for _, in := range b.Instrs {
+				if in == at {
+					break
+				}
+				if in == ref {
 					return true
 				}
 			}

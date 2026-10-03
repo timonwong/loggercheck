@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"slices"
 
 	"golang.org/x/tools/go/analysis"
 
@@ -58,7 +59,7 @@ func checkStringerValues(pass *analysis.Pass, call CallContext, keyAndValues []a
 			continue
 		}
 
-		if call.Nilness.NonNilVariadicArg(call.Expr, argIndex(call.Expr, arg)) {
+		if call.Nilness.NonNilVariadicArg(call.Expr, slices.Index(call.Expr.Args, arg)) {
 			continue
 		}
 
@@ -69,15 +70,6 @@ func checkStringerValues(pass *analysis.Pass, call CallContext, keyAndValues []a
 			Message:  "logging value may panic when nil because its element type implements fmt.Stringer",
 		})
 	}
-}
-
-func argIndex(call *ast.CallExpr, arg ast.Expr) int {
-	for i, a := range call.Args {
-		if a == arg {
-			return i
-		}
-	}
-	return -1
 }
 
 func ExecuteChecker(c Checker, pass *analysis.Pass, call CallContext, cfg Config) {
