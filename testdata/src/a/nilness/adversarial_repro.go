@@ -35,3 +35,23 @@ func adversarialReturningKlogExit(p *NamespacedName) {
 	}
 	klog.InfoS("normal continuation", "p", p)
 }
+
+func adversarialGenericPointer[U any, P interface {
+	*U
+	String() string
+}](p P) {
+	klog.InfoS("generic pointer", "p", p) // want `logging value may panic when nil`
+}
+
+func adversarialGenericInstantiation() {
+	adversarialGenericPointer[NamespacedName]((*NamespacedName)(nil))
+}
+
+func adversarialGenericGuardedPointer[U any, P interface {
+	*U
+	String() string
+}](p P) {
+	if p != nil {
+		klog.InfoS("guarded generic pointer", "p", p)
+	}
+}
