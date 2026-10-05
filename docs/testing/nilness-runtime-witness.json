@@ -1,0 +1,6 @@
+{
+  "Fatal": true,
+  "FlushAndExit": true,
+  "GenericStringPanics": true,
+  "GenericTypedNil": true
+}
