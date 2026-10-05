@@ -121,7 +121,14 @@ func TestLinter(t *testing.T) {
 }
 
 func TestStringerNilness(t *testing.T) {
-	analysistest.Run(t, analysistest.TestData(), loggercheck.NewAnalyzer(), "a/nilness")
+	results := analysistest.Run(t, analysistest.TestData(), loggercheck.NewAnalyzer(), "a/nilness")
+	var externalTestPackage bool
+	for _, result := range results {
+		if result.Pass.Pkg.Path() == "a/nilness_test" {
+			externalTestPackage = true
+		}
+	}
+	require.True(t, externalTestPackage, "the external test package must also be analyzed")
 }
 
 func TestOptions(t *testing.T) {
