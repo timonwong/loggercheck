@@ -1,0 +1,18 @@
+--- FAIL: TestStringerNilness (0.42s)
+    analysistest.go:713: a/nilness/adversarial_repro.go:16: no diagnostic was reported matching `logging value may panic when nil`
+    analysistest.go:713: a/nilness/adversarial_repro.go:26: no diagnostic was reported matching `logging value may panic when nil`
+    analysistest.go:713: a/nilness/adversarial_repro.go:43: no diagnostic was reported matching `logging value may panic when nil`
+--- FAIL: TestStringerNilnessVendoredNames (0.03s)
+    analysistest.go:713: x/example.go:18: no diagnostic was reported matching `logging value may panic when nil`
+    analysistest.go:713: x/example.go:25: no diagnostic was reported matching `logging value may panic when nil`
+FAIL
+FAIL	github.com/timonwong/loggercheck	8.436s
+?   	github.com/timonwong/loggercheck/cmd/loggercheck	[no test files]
+?   	github.com/timonwong/loggercheck/internal/checkers	[no test files]
+?   	github.com/timonwong/loggercheck/internal/checkers/printf	[no test files]
+ok  	github.com/timonwong/loggercheck/internal/nilness	0.534s
+ok  	github.com/timonwong/loggercheck/internal/rules	2.171s
+ok  	github.com/timonwong/loggercheck/internal/sets	2.681s
+ok  	github.com/timonwong/loggercheck/internal/stringutil	1.480s
+?   	github.com/timonwong/loggercheck/plugin	[no test files]
+FAIL

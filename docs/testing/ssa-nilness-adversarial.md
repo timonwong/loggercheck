@@ -63,7 +63,7 @@ The implementation files are unchanged.
 | --- | --- | --- | --- |
 | `adversarialReturningExitHook`, `adversarialReturningFatalHook` | Replace `klog.OsExit` with `func(int){}`; `if p == nil { klog.FlushAndExit(..., 1) }`; log `p` | `internal/nilness/nilness.go:170-172` trusts functions whose exit contract is mutable, deleting the nil predecessor | Conservatively remove klog's hook-backed functions from noReturn. Proving a default hook requires interprocedural/global mutation knowledge. |
 | `adversarialVendoredLog`, `adversarialVendoredOS` | A returning `x/vendor/log.Fatal` or `x/vendor/os.Exit` in the nil branch; log `p` | `internal/nilness/nilness.go:153-164` strips the vendor prefix before trusting stdlib identity | Match stdlib paths exactly before any devendoring; restrict library names/receivers to known contracts. Devendoring alone does not establish a no-return contract. |
-| `adversarialGenericPointer`, `adversarialGenericInstantiation` | `P interface{ *U; String() string }`, instantiated with `U=NamespacedName`, called with nil | `internal/checkers/checker.go:51-54` rejects `*types.TypeParam` before querying SSA | Include concrete pointer terms/instances with a proven value-receiver Stringer element; keep unproven nilness conservative. This gap also exists before PR #124; do not count it as an SSA regression. |
+| `adversarialGenericPointer`, `adversarialGenericInstantiation` | `P interface{ *U; String() string }`, instantiated with `U=NamespacedName`, called with nil | `internal/checkers/checker.go:51-54` rejects `*types.TypeParam` before querying SSA | Include concrete pointer terms/instances with a proven value-receiver Stringer element; keep unproven nilness conservative. The same pointer-only gate is present in `640df0f` (v0.12.1); do not count this gap as an SSA regression. |
 
 klog v2.70.1 is the real fixture dependency, not a stub:
 `exit.go:38-51` exports `OsExit` and calls it in FlushAndExit; `klog.go:950`
@@ -154,5 +154,20 @@ intentionally retains two calls on one physical line, so do not reformat it.
 
 ### Full-suite verification
 
-Pending final runs on timon-m3mac with Go 1.26.3 and Go 1.27.1. The final branch
-intentionally fails on the five expected missing diagnostics above.
+Both final runs used `go test -count=1 ./...` on **timon-m3mac**, with each
+toolchain's bin directory first in PATH so go/packages also uses that version.
+
+| Toolchain | Full-suite result | Artifact |
+| --- | --- | --- |
+| Go 1.26.3 darwin/arm64 | FAIL: only the five missing diagnostics above | `go1.26.3-full.log` |
+| Go 1.27.1 darwin/arm64 | FAIL: the same five missing diagnostics | `go1.27.1-full.log` |
+
+The passing fixture set and existing nilness unit tests were also checked
+independently before adding the failing commits. Runtime witnesses passed on
+Go 1.26.3. Full suites ran once per requested toolchain at the end; development
+and mutation runs used the nilness subset.
+
+The 71 named adversarial/external fixture functions cover the inventory above.
+This is an adversarial regression corpus, not a claim of complete soundness.
+The branch deliberately retains correct failing expectations for every
+confirmed false negative. No implementation fix is included.
