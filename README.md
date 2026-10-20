@@ -3,6 +3,7 @@
 ## Description
 
 A linter checks the odd number of key and value pairs for common logger libraries:
+- [flume](https://github.com/gemalto/flume)
 - [kitlog](https://github.com/go-kit/log)
 - [klog](https://github.com/kubernetes/klog)
 - [logr](https://github.com/go-logr/logr)
@@ -36,7 +37,7 @@ go install github.com/timonwong/loggercheck/cmd/loggercheck
 ## Usage
 
 ```
-loggercheck: Checks key value pairs for common logger libraries (kitlog,klog,logr,slog,zap).
+loggercheck: Checks key value pairs for common logger libraries (flume,kitlog,klog,logr,slog,zap).
 
 Usage: loggercheck [-flag] [package]
 
@@ -52,7 +53,7 @@ Flags:
   -debug string
         debug flags, any subset of "fpstv"
   -disable value
-        comma-separated list of disabled logger checker (kitlog,klog,logr,slog,zap) (default kitlog)
+        comma-separated list of disabled logger checker (flume,kitlog,klog,logr,slog,zap) (default kitlog)
   -fix
         apply all suggested fixes
   -flags
