@@ -23,15 +23,15 @@ func ExamplePrintfLike() {
 	log.Info("%[3]*.[2*[1]f", "intKey", 1)
 
 	// Check message and key value pairs
-	log.Info("message", "key%s", "value %d") // want `logging message should not use format specifier "%s"`
+	log.Info("message", "key%s", "value %d") // want `logging message should not contain format specifiers, found "%s"`
 
-	log.Info("%[3]*s x") // want `logging message should not use format specifier ".+"`
-	log.Info("%[3]d x")  // want `logging message should not use format specifier ".+"`
+	log.Info("%[3]*s x") // want `logging message should not contain format specifiers, found ".+"`
+	log.Info("%[3]d x")  // want `logging message should not contain format specifiers, found ".+"`
 
-	log.Info("% 8s")                        // want `logging message should not use format specifier "% 8s"`
-	log.Info("hello %s", "intKey", 1)       // want `logging message should not use format specifier "%s"`
-	log.Info("%.3[1]f", "intKey", 1)        // want `logging message should not use format specifier ".+"`
-	log.Info("%[3]*.[2]*[1]f", "intKey", 1) // want `logging message should not use format specifier ".+"`
+	log.Info("% 8s")                        // want `logging message should not contain format specifiers, found "% 8s"`
+	log.Info("hello %s", "intKey", 1)       // want `logging message should not contain format specifiers, found "%s"`
+	log.Info("%.3[1]f", "intKey", 1)        // want `logging message should not contain format specifiers, found ".+"`
+	log.Info("%[3]*.[2]*[1]f", "intKey", 1) // want `logging message should not contain format specifiers, found ".+"`
 	const ValidFormat = "hello %#v %32d %f %d %g %% %s %9.2f %w %T %[1]d"
-	log.Info(ValidFormat, "intKey", 1) // want `logging message should not use format specifier "%#v"`
+	log.Info(ValidFormat, "intKey", 1) // want `logging message should not contain format specifiers, found "%#v"`
 }
